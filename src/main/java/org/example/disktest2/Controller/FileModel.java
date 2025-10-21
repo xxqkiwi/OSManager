@@ -1,5 +1,8 @@
 package org.example.disktest2.Controller;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,7 +15,7 @@ public class FileModel { //文件或目录属性
     private int attr;        //文件还是目录
     private int startNum;    //FAT表中的起始块
     private FileModel father = null;  //上级目录
-
+    private FileOutputStream fos = null;  // 实际的流式文件
 
     public FileModel(String name, String type, int startNum, int size){
         this.name = name;
@@ -27,7 +30,19 @@ public class FileModel { //文件或目录属性
         this.type = " ";
         this.attr = 3;
         this.startNum = startNum;
-        this.size = 1;
+        this.size = 7;
+    }
+
+    public void setFos(String filePath){
+        try(FileOutputStream fos = new FileOutputStream(filePath)) {
+            this.fos = fos;
+        } catch (IOException e) {
+            throw new RuntimeException("setFos失败：" + e);
+        }
+    }
+
+    public FileOutputStream getFos() {
+        return fos;
     }
 
     public String getName() {
