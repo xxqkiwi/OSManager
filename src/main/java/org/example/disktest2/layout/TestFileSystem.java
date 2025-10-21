@@ -4,13 +4,13 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
@@ -43,6 +43,32 @@ public class TestFileSystem implements Initializable {
     }
 */
 
+    @FXML
+    private TreeView<String> dirTree;   // 放目录树中目录和文件的名字
+
+    /** 只在 UI 初始化时调用一次 */
+    private void initializeTree(OSManager osManager){
+        TreeItem<String> rootItem = createNode(osManager.getRoot());
+        dirTree.setRoot(rootItem);
+        dirTree.setShowRoot(true);
+
+    }
+
+    /** 递归建节点 */
+    private TreeItem<String> createNode(FileModel model){
+        TreeItem<String> item = new TreeItem<>(model.getName());
+        if(model.getAttr() == 3){       // 目录
+            for(FileModel child : model.subMap.values()){
+                item.getChildren().add(createNode(child));
+            }
+        }
+        return item;
+    }
+
+    private void refreshTree(OSManager osManager){
+        dirTree.setRoot(createNode(osManager.getRoot()));
+    }
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         OSManager manager = new OSManager();
@@ -51,6 +77,7 @@ public class TestFileSystem implements Initializable {
         checkDisk(manager);
         initFat(manager);
         checkFat(manager);
+        initializeTree(manager);
     }
 
     public void menu(OSManager manager) {
@@ -230,6 +257,7 @@ public class TestFileSystem implements Initializable {
                     inputArea.setPromptText("请输入命令：");
                     checkDisk(manager);
                     checkFat(manager);
+                    refreshTree(manager);//目录树刷新
                 }
 
             }
@@ -241,13 +269,13 @@ public class TestFileSystem implements Initializable {
     public static String[] parseCommand(String str) {
         String[] parts = str.trim().split("\\s+");
         ArrayList<String> result = new ArrayList<>();
-        
+
         for (String part : parts) {
             if (!part.isEmpty()) {
                 result.add(part);
             }
         }
-        
+
         return result.toArray(new String[result.size()]);
     }
 
@@ -329,22 +357,22 @@ public class TestFileSystem implements Initializable {
     public void checkFat(OSManager manager) {
         Map<String, FileModel> totalFiles = manager.getTotalFiles();
         int[] fat = manager.getFat();
-        
+
         // 先清空FAT显示区域
         FatPane.getChildren().clear();
-        
+
         // 重新初始化FAT表显示
         for (int i = 0; i < 128; i++) {
             FatPane.add(new Text(""+i),0,i);
             FatPane.add(new Text(""+fat[i]),1,i);
         }
-        
+
         // 为每个文件添加名称显示
         for(FileModel fileModel : totalFiles.values()) {
             int i = fileModel.getStartNum();
             int count = 0; // 防止死循环的计数器
             int maxIterations = 128; // 最大迭代次数
-            
+
             while(fat[i] != -1 && count < maxIterations) {
                 // 更新FAT表显示
                 Node node = FatPane.getChildren().get(i * 3 + 1); // 获取next列
@@ -352,18 +380,18 @@ public class TestFileSystem implements Initializable {
                     FatPane.getChildren().remove(node);
                 }
                 FatPane.add(new Text(""+fat[i]),1,i);
-                
+
                 // 添加文件名显示
                 Node nameNode = FatPane.getChildren().get(i * 3 + 2); // 获取name列
                 if(nameNode != null) {
                     FatPane.getChildren().remove(nameNode);
                 }
                 FatPane.add(new Text(""+fileModel.getName()),2,i);
-                
+
                 i = fat[i];
                 count++;
             }
-            
+
             // 处理最后一个节点
             if(count < maxIterations) {
                 Node node = FatPane.getChildren().get(i * 3 + 1);
@@ -371,7 +399,7 @@ public class TestFileSystem implements Initializable {
                     FatPane.getChildren().remove(node);
                 }
                 FatPane.add(new Text(""+fat[i]),1,i);
-                
+
                 Node nameNode = FatPane.getChildren().get(i * 3 + 2);
                 if(nameNode != null) {
                     FatPane.getChildren().remove(nameNode);
