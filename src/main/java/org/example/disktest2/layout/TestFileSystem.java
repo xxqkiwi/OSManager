@@ -5,6 +5,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
@@ -14,6 +15,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
+import javafx.util.StringConverter;
 import org.example.disktest2.Controller.FileModel;
 import org.example.disktest2.Controller.OSManager;
 
@@ -44,28 +46,64 @@ public class TestFileSystem implements Initializable {
 */
 
     @FXML
-    private TreeView<String> dirTree;   // 放目录树中目录和文件的名字
+    private TreeView<FileModel> dirTree;   // 挂实体，方便右键、重命名取数据
 
-    /** 只在 UI 初始化时调用一次 */
-    private void initializeTree(OSManager osManager){
-        TreeItem<String> rootItem = createNode(osManager.getRoot());
-        dirTree.setRoot(rootItem);
-        dirTree.setShowRoot(true);
+    private String getPath(FileModel fm) {
+        StringBuilder sb = new StringBuilder(fm.getName());
+        FileModel p = fm.getFather();
+        while (p != null) {
+            sb.insert(0, p.getName() + "/");
+            p = p.getFather();
+        }
+        return sb.toString();
+    }
+
+    private void addContextMenu(OSManager osManager) {
+        ContextMenu cm = new ContextMenu();
+        MenuItem del = new MenuItem("删除");
+        del.setOnAction(e -> {
+            TreeItem<FileModel> item = dirTree.getSelectionModel().getSelectedItem();
+            if (item == null) return;
+            FileModel target = item.getValue();
+            // 调用后端逻辑
+            int res = osManager.deleteFileByPath(getPath(target));
+            if (res == 0) {               // 成功
+                item.getParent().getChildren().remove(item);
+                checkDisk(osManager);
+                checkFat(osManager);
+            } else {
+                new Alert(Alert.AlertType.ERROR, "删除失败，错误码：" + res).showAndWait();
+            }
+        });
+        cm.getItems().add(del);
+        dirTree.setContextMenu(cm);
+    }
+
+    private void addRenameHandler(OSManager osManager) {
 
     }
 
+    /** 只在 UI 初始化时调用一次 */
+    private void initializeTree(OSManager osManager) {
+        TreeItem<FileModel> rootItem = createNode(osManager.getRoot());
+        dirTree.setRoot(rootItem);
+        dirTree.setShowRoot(true);
+        addContextMenu(osManager);          // ① 右键菜单
+        addRenameHandler(osManager);        // ② 双击重命名
+    }
+
     /** 递归建节点 */
-    private TreeItem<String> createNode(FileModel model){
-        TreeItem<String> item = new TreeItem<>(model.getName());
-        if(model.getAttr() == 3){       // 目录
-            for(FileModel child : model.subMap.values()){
+    private TreeItem<FileModel> createNode(FileModel model) {
+        TreeItem<FileModel> item = new TreeItem<>(model);
+        if (model.getAttr() == 3) {
+            for (FileModel child : model.subMap.values()) {
                 item.getChildren().add(createNode(child));
             }
         }
         return item;
     }
 
-    private void refreshTree(OSManager osManager){
+    public void refreshTree(OSManager osManager) {
         dirTree.setRoot(createNode(osManager.getRoot()));
     }
 
