@@ -21,6 +21,10 @@ public class OSManager {
     private FileModel root = new FileModel("root",1);
     private FileModel nowCatalog = root;
 
+    public FileModel getRoot(){
+        return root;
+    }
+
     public OSManager(){
         for (int i = 2; i < 128; i++) {
             fat[i]=0;

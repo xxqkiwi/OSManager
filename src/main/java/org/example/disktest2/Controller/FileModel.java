@@ -45,6 +45,11 @@ public class FileModel { //文件或目录属性
         return fos;
     }
 
+    @Override
+    public String toString() {
+        return name;   // 只返回名字即可
+    }
+
     public String getName() {
         return name;
     }
