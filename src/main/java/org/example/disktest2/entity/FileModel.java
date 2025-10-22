@@ -1,6 +1,5 @@
-package org.example.disktest2.Controller;
+package org.example.disktest2.entity;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;

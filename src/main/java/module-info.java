@@ -13,4 +13,6 @@ module org.example.disktest2 {
     opens org.example.disktest2.Controller to javafx.fxml;
     exports org.example.disktest2.layout;
     opens org.example.disktest2.layout to javafx.fxml;
+    exports org.example.disktest2.entity;
+    opens org.example.disktest2.entity to javafx.fxml;
 }

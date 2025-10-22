@@ -5,18 +5,13 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
-import javafx.util.StringConverter;
-import org.example.disktest2.Controller.FileModel;
+import org.example.disktest2.entity.FileModel;
 import org.example.disktest2.Controller.OSManager;
 
 import java.io.IOException;
@@ -24,8 +19,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class TestFileSystem implements Initializable {
     @FXML

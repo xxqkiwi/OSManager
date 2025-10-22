@@ -1,5 +1,7 @@
 package org.example.disktest2.Controller;
 
+import org.example.disktest2.entity.FileModel;
+
 import java.awt.*;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -9,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class OSManager {
-    private Map<String,FileModel> totalFiles = new HashMap<String, FileModel>();
+    private Map<String, FileModel> totalFiles = new HashMap<String, FileModel>();
     //FAT表
     private int[] fat = new int[128];
 
