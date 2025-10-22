@@ -7,15 +7,17 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class OSManager {
-    private Map<String, FileModel> totalFiles = new HashMap<String, FileModel>();
+    private List<FileModel> totalFiles = new ArrayList<FileModel>();
     //FAT表
     private int[] fat = new int[128];
 
-    public Map<String, FileModel> getTotalFiles() {
+    public List<FileModel> getTotalFiles() {
         return totalFiles;
     }
 
@@ -35,7 +37,7 @@ public class OSManager {
         fat[1] = -1; //存根目录,表示已被占用
 
         root.setFather(root);
-        totalFiles.put("root",root);
+        totalFiles.add(root);
     }
 
     public int[] getFat() {
@@ -211,7 +213,7 @@ public class OSManager {
         FileModel file = new FileModel(name, type, startNum, size);
         file.setFather(parentDir);
         parentDir.subMap.put(fileName, file);
-        totalFiles.put(fileName, file);
+        totalFiles.add(file);
         fat[0] -= size;
         file.setFos(path);
 
@@ -248,7 +250,7 @@ public class OSManager {
         // 删除文件
         delFat(file.getStartNum());
         parentDir.subMap.remove(fileName);
-        totalFiles.remove(fileName);
+        totalFiles.remove(file);
         fat[0] += file.getSize();
         FileOutputStream fos = file.getFos();
         File f = new File(path);
@@ -299,7 +301,7 @@ public class OSManager {
             } else {
                 delFat(value.getStartNum());
                 nowCatalog.subMap.remove(name);
-                totalFiles.remove(name); // 从totalFiles中移除文件
+                totalFiles.remove(value); // 从totalFiles中移除文件
                 fat[0] += value.getSize();
                 System.out.println("删除成功");
                 showFile();
@@ -383,7 +385,7 @@ public class OSManager {
 
         FileModel temp = nowCatalog;
 
-        if(totalFiles.containsKey(roadName[roadName.length - 1])) {
+        if(totalFiles.contains(roadName[roadName.length - 1])) {
             nowCatalog = root;
             if(nowCatalog.getName().equals(roadName[1])) {
                 for(int i = 1; i < roadName.length ; i++) {
@@ -553,6 +555,31 @@ public class OSManager {
         return pathParts[pathParts.length - 1];
     }
 
+    //构建完整路径
+    private String buildFullPath(FileModel dir) {
+        if (dir == null) {
+            return "";
+        }
+        
+        StringBuilder path = new StringBuilder();
+        FileModel current = dir;
+        
+        while (current != null && current != root) {
+            if (path.length() > 0) {
+                path.insert(0, "\\");
+            }
+            path.insert(0, current.getName());
+            current = current.getFather();
+        }
+        
+        if (path.length() > 0) {
+            path.insert(0, "\\");
+        }
+        path.insert(0, "root");
+        
+        return path.toString();
+    }
+
     //打开文件，显示文件内容
     public int typeFile(String path) {
         String fileName = getFileName(path);
@@ -596,11 +623,9 @@ public class OSManager {
     public int copyFile(String sourcePath, String targetPath) {
         String sourceFileName = getFileName(sourcePath);
         String sourceParentPath = getParentPath(sourcePath);
-        String targetFileName = getFileName(targetPath);
-        String targetParentPath = getParentPath(targetPath);
 
-        if (sourceFileName.isEmpty() || targetFileName.isEmpty()) {
-            return 2; // 路径错误
+        if (sourceFileName.isEmpty()) {
+            return 2; // 源路径错误
         }
 
         // 获取源文件
@@ -614,10 +639,34 @@ public class OSManager {
             return 1; // 源文件不存在
         }
 
-        // 获取目标目录
-        FileModel targetParentDir = navigateToPath(targetParentPath);
-        if (targetParentDir == null) {
-            return 2; // 目标路径错误
+        // 检查源文件是否为目录
+        if (sourceFile.getAttr() == 3) {
+            return 5; // 不能复制目录
+        }
+
+        // 确定目标目录和文件名
+        FileModel targetParentDir;
+        String targetFileName;
+        
+        // 检查目标路径是否为目录
+        FileModel targetDir = navigateToPath(targetPath);
+        if (targetDir != null && targetDir.getAttr() == 3) {
+            // 目标路径是目录，使用源文件名
+            targetParentDir = targetDir;
+            targetFileName = sourceFileName;
+        } else {
+            // 目标路径是文件路径，解析父目录和文件名
+            targetFileName = getFileName(targetPath);
+            String targetParentPath = getParentPath(targetPath);
+            
+            if (targetFileName.isEmpty()) {
+                return 2; // 目标路径错误
+            }
+            
+            targetParentDir = navigateToPath(targetParentPath);
+            if (targetParentDir == null) {
+                return 2; // 目标路径错误
+            }
         }
 
         // 检查目标文件是否已存在
@@ -632,13 +681,21 @@ public class OSManager {
 
         // 复制文件
         int startNum = setFat(sourceFile.getSize());
-        FileModel newFile = new FileModel(targetFileName, sourceFile.getType(), startNum, sourceFile.getSize());
+
+        FileModel newFile = new FileModel(sourceFile.getName(), sourceFile.getType(), startNum, sourceFile.getSize());
         newFile.setFather(targetParentDir);
         targetParentDir.subMap.put(targetFileName, newFile);
-        totalFiles.put(targetFileName, newFile);
+        totalFiles.add(newFile);
+
         fat[0] -= sourceFile.getSize();
 
-        System.out.println("复制文件成功：" + sourcePath + " -> " + targetPath);
+        // 构建完整的目标路径用于文件系统操作
+        String fullTargetPath = buildFullPath(targetParentDir) + "\\" + targetFileName;
+        newFile.setFos(fullTargetPath);
+        
+        System.out.println("源文件起始块: " + sourceFile.getStartNum());
+        System.out.println("目标文件起始块: " + startNum);
+        System.out.println("复制文件成功：" + sourcePath + " -> " + fullTargetPath);
         showFile();
         return 0;
     }
@@ -672,7 +729,7 @@ public class OSManager {
         FileModel directory = new FileModel(dirName, startNum);
         directory.setFather(parentDir);
         parentDir.subMap.put(dirName, directory);
-        totalFiles.put(dirName, directory);
+        totalFiles.add(directory);
         fat[0]--;
         File dir = new File(parentPath,dirName);
         if(dir.mkdir()) {
@@ -712,7 +769,7 @@ public class OSManager {
         // 删除目录
         delFat(directory.getStartNum());
         parentDir.subMap.remove(dirName);
-        totalFiles.remove(dirName);
+        totalFiles.remove(directory);
         fat[0] += directory.getSize();
         File dir = new File(path);
         //if(dir.delete()) {
