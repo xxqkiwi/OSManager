@@ -22,7 +22,7 @@ public class OSManager {
     }
 
     //根目录
-    private FileModel root = new FileModel("root",1);
+    private FileModel root = new FileModel("root",2);
     private FileModel nowCatalog = root;
 
     public FileModel getRoot(){
@@ -30,13 +30,13 @@ public class OSManager {
     }
 
     public OSManager(){
-        for (int i = 2; i < 128; i++) {
+        for (int i = 3; i < 128; i++) {
             fat[i]=0;
         }
         fat[0] = 126; //磁盘剩余块数
         fat[1] = -1; //存根目录,表示已被占用
-
-        root.setFather(root);
+        fat[2] = -1;
+        //root.setFather(root);
         totalFiles.add(root);
     }
 
