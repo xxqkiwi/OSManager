@@ -241,13 +241,13 @@ public class TestFileSystem implements Initializable {
     public static String[] parseCommand(String str) {
         String[] parts = str.trim().split("\\s+");
         ArrayList<String> result = new ArrayList<>();
-        
+
         for (String part : parts) {
             if (!part.isEmpty()) {
                 result.add(part);
             }
         }
-        
+
         return result.toArray(new String[result.size()]);
     }
 
@@ -279,12 +279,12 @@ public class TestFileSystem implements Initializable {
         int[] fat = osManager.getFat();
         for(int i = 2; i < 128 ; i++) {
             Rectangle rectangle = getRectangle(diskPane, i/16, i%16);
-                if(fat[i] != 0) {
-                    rectangle.setFill(Color.RED);
-                } else {
-                    rectangle.setFill(Color.GREEN);
-                }
+            if(fat[i] != 0) {
+                rectangle.setFill(Color.RED);
+            } else {
+                rectangle.setFill(Color.GREEN);
             }
+        }
     }
 
     public Rectangle getRectangle(GridPane gridPane, int row, int col) {
@@ -329,22 +329,22 @@ public class TestFileSystem implements Initializable {
     public void checkFat(OSManager manager) {
         Map<String, FileModel> totalFiles = manager.getTotalFiles();
         int[] fat = manager.getFat();
-        
+
         // 先清空FAT显示区域
         FatPane.getChildren().clear();
-        
+
         // 重新初始化FAT表显示
         for (int i = 0; i < 128; i++) {
             FatPane.add(new Text(""+i),0,i);
             FatPane.add(new Text(""+fat[i]),1,i);
         }
-        
+
         // 为每个文件添加名称显示
         for(FileModel fileModel : totalFiles.values()) {
             int i = fileModel.getStartNum();
             int count = 0; // 防止死循环的计数器
             int maxIterations = 128; // 最大迭代次数
-            
+
             while(fat[i] != -1 && count < maxIterations) {
                 // 更新FAT表显示
                 Node node = FatPane.getChildren().get(i * 3 + 1); // 获取next列
@@ -352,18 +352,18 @@ public class TestFileSystem implements Initializable {
                     FatPane.getChildren().remove(node);
                 }
                 FatPane.add(new Text(""+fat[i]),1,i);
-                
+
                 // 添加文件名显示
                 Node nameNode = FatPane.getChildren().get(i * 3 + 2); // 获取name列
                 if(nameNode != null) {
                     FatPane.getChildren().remove(nameNode);
                 }
                 FatPane.add(new Text(""+fileModel.getName()),2,i);
-                
+
                 i = fat[i];
                 count++;
             }
-            
+
             // 处理最后一个节点
             if(count < maxIterations) {
                 Node node = FatPane.getChildren().get(i * 3 + 1);
@@ -371,7 +371,7 @@ public class TestFileSystem implements Initializable {
                     FatPane.getChildren().remove(node);
                 }
                 FatPane.add(new Text(""+fat[i]),1,i);
-                
+
                 Node nameNode = FatPane.getChildren().get(i * 3 + 2);
                 if(nameNode != null) {
                     FatPane.getChildren().remove(nameNode);
