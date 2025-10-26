@@ -7,7 +7,8 @@
     <children>
         <ScrollPane layoutX="4.0" layoutY="13.0" prefHeight="557.0" prefWidth="202.0">
             <content>
-                <Label prefHeight="35.0" prefWidth="118.0" text="目录树" />
+<!--                <Label prefHeight="35.0" prefWidth="118.0" text="目录树" />-->
+                    <TreeView fx:id="dirTree" prefWidth="200" prefHeight="557.0"/>
             </content>
         </ScrollPane>
         <GridPane fx:id="diskPane" layoutX="263.0" layoutY="302.0" prefHeight="267.0" prefWidth="464.0">
