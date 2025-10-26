@@ -11,13 +11,21 @@ public class FileModel { //文件或目录属性
     private int size;        //大小
     private int attr;        //文件还是目录
     private int startNum;    //FAT表中的起始块
-    private FileModel father = null;  //上级目录
+    public FileModel father = null;  //上级目录
 
 
     public FileModel(String name, String type, int startNum, int size){
         this.name = name;
         this.type = type;
         this.attr = 2;
+        this.startNum = startNum;
+        this.size = size;
+    }
+
+    public FileModel(String name, String type, int attr, int startNum, int size){
+        this.name = name;
+        this.type = type;
+        this.attr = attr;
         this.startNum = startNum;
         this.size = size;
     }
@@ -30,9 +38,21 @@ public class FileModel { //文件或目录属性
         this.size = 1;
     }
 
+    public FileModel(String name, int attr, int startNum){
+        this.name = name;
+        this.type = " ";
+        this.attr = attr;
+        this.startNum = startNum;
+        this.size = 1;
+    }
+
     @Override
     public String toString() {
         return name;   // 只返回名字即可
+    }
+
+    public boolean isDirectory() {
+        return this.getAttr() == 2;   // 2 表示目录，按你现有枚举/常量来
     }
 
     public String getName() {
