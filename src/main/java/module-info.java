@@ -1,11 +1,8 @@
 module org.example.disktest2 {
 
-    requires javafx.base;
-    requires javafx.graphics;
-
-    requires javafx.controls;
     requires javafx.fxml;
     requires jdk.compiler;
+    requires javafx.web;
 
     exports org.example.disktest2.pd.view ;
     opens org.example.disktest2 to javafx.fxml;
