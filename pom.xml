@@ -59,7 +59,7 @@
             <id>default-cli</id>
             <configuration>
               <mainClass>org.example.disktest2/org.example.disktest2.HelloApplication</mainClass>
-              <!--<mainClass>org.example.disktest2/org.example.disktest2.memory.memoryfx.MemoryApplication</mainClass>-->
+              <!--<mainClass>org.example.disktest2/org.example.disktest2.memory.MemoryApplication</mainClass>-->
               <launcher>app</launcher>
               <jlinkZipName>app</jlinkZipName>
               <jlinkImageName>app</jlinkImageName>

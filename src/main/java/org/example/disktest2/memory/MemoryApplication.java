@@ -1,4 +1,4 @@
-package org.example.disktest2.memory.memoryfx;
+package org.example.disktest2.memory;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;

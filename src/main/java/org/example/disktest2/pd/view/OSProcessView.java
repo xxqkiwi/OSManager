@@ -368,7 +368,7 @@ public class OSProcessView extends Application {
         ProcessFilter filter = filterCombo.getValue();
         ProcessState highlightState = highlightCombo.getValue();
 
-        // 应用过滤
+        // 应用过滤（保持不变）
         List<ProcessDetail> filtered = allDetails.stream()
                 .filter(detail -> {
                     if (filter == ProcessFilter.ALL) return true;
@@ -385,20 +385,40 @@ public class OSProcessView extends Application {
 
         processTable.getItems().setAll(filtered);
 
-        // 设置高亮
+        // 根据不同状态设置不同颜色
         processTable.setRowFactory(tv -> new TableRow<ProcessDetail>() {
             @Override
             protected void updateItem(ProcessDetail item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setStyle("");
-                } else if (item.getState() == highlightState) {
-                    setStyle("-fx-background-color: lightgreen;");
-                } else {
-                    setStyle("");
+                // 清除之前的样式
+                setStyle("");
+
+                if (!empty && item != null) {
+                    // 根据进程状态设置不同背景色
+                    ProcessState state = item.getState();
+                    switch (state) {
+                        case READY:
+                            setStyle("-fx-background-color: pink;");
+                            break;
+                        case RUNNING:
+                            setStyle("-fx-background-color: lightgreen;");
+                            break;
+                        case BLOCKED:
+                            setStyle("-fx-background-color: red;");
+                            break;
+                        case TERMINATED:
+                            setStyle("-fx-background-color: lightyellow;");
+                            break;
+                        // 其他状态（如果有的话）保持默认样式
+                        default:
+                            setStyle("");
+                    }
                 }
             }
         });
+
+        // 强制刷新表格以应用样式
+        processTable.refresh();
     }
 
     public static void main(String[] args) {

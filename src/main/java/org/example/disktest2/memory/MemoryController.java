@@ -1,16 +1,19 @@
-package org.example.disktest2.memory.memoryfx;
+package org.example.disktest2.memory;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+import org.example.disktest2.pd.domain.model.PCB;
 
 
 /**
@@ -22,13 +25,14 @@ public class MemoryController {
     @FXML private ProgressBar usageBar;    // 内存使用进度条
     @FXML private Label       usageText;    // 内存使用率文本标签
     @FXML private Canvas canvas;           // 内存可视化画布
-    @FXML private TextField nameField, sizeField;  // 进程名称和大小输入框
-    @FXML private TextArea log;            // 日志输出区域
+//    @FXML private TextField nameField, sizeField;  // 进程名称和大小输入框
+//    @FXML private TextArea log;            // 日志输出区域
     @FXML private VBox memoryContainer; // 需要在FXML中添加这个容器
     private final MemoryManager mm = MemoryManager.get();
     private Label sizeInfoLabel;
     private Label colorDescLabel; // 用于显示颜色说明的标签
     private HBox legendBox;
+    private Timeline refreshTimeline;
 
     @FXML
     private void initialize() {
@@ -66,6 +70,40 @@ public class MemoryController {
         canvas.heightProperty().addListener((obs, old, neo) -> draw());
 
         draw(); // 首次绘制
+
+        // 初始化定时刷新任务
+        refreshTimeline = new Timeline(new KeyFrame(Duration.millis(500), e -> {
+            if (mm.isMemoryChanged()) { // 现在可以正常调用了
+                draw(); // 刷新界面
+                mm.resetMemoryChanged(); // 重置标识
+            }
+        }));
+        refreshTimeline.setCycleCount(Timeline.INDEFINITE);
+        refreshTimeline.play();
+
+        // 2. 延迟获取窗口并绑定关闭事件
+        Platform.runLater(() -> {
+            try {
+                // 获取当前舞台
+                Stage stage = (Stage) canvas.getScene().getWindow();
+                // 绑定关闭事件，停止刷新任务
+                stage.setOnCloseRequest(event -> {
+                    if (refreshTimeline != null) {
+                        refreshTimeline.stop();
+                    }
+                });
+            } catch (NullPointerException e) {
+                // 容错处理：如果仍获取失败，打印日志但不崩溃
+                System.err.println("获取内存管理窗口失败：" + e.getMessage());
+            }
+        });
+
+    }
+    // 添加停止刷新的方法，在界面关闭时调用
+    public void stopRefresh() {
+        if (refreshTimeline != null) {
+            refreshTimeline.stop();
+        }
     }
 
     // 创建图例
@@ -83,34 +121,35 @@ public class MemoryController {
  * 处理内存载入按钮的点击事件
  * 从界面获取进程ID和大小，尝试在内存中分配空间
  */
-    @FXML
-    private void onLoad() {
-    // 获取进程ID并去除前后空格
-        String pid = nameField.getText().trim();
-        int size;
-    // 尝试将输入的大小转换为整数
-        try { size = Integer.parseInt(sizeField.getText().trim()); }
-    // 如果输入不是整数，显示错误信息并返回
-        catch (NumberFormatException e) { log.appendText("大小必须是整数\n"); return; }
-
-        /* ② 重名检测：遍历当前已载入的进程 */
-        for (PCB pcb : mm.getPcbs()) {          // 在 MemoryManager 里加一行
-            if (pcb.pid.equals(pid)) {          // 名字已存在
-                log.appendText("创建失败：进程 " + pid + " 已存在\n");
-                return;                         // 直接退出，不再分配
-            }
-        }
-    // 调用内存管理模块的load方法尝试分配内存
-        int idx = mm.load(pid, size);
-    // 如果分配失败（返回-1），显示失败信息
-        if (idx == -1) log.appendText("分配失败：无合适空闲区或 PCB 已满\n");
-    // 否则显示成功信息
-        else log.appendText("成功载入 " + pid + "\n");
-    // 更新内存显示
-        draw();
+/*
+@FXML
+private void onLoad() {
+    String pid = nameField.getText().trim();
+    int size;
+    try {
+        size = Integer.parseInt(sizeField.getText().trim());
+    } catch (NumberFormatException e) {
+        log.appendText("大小必须是整数\n");
+        return;
     }
 
-    @FXML  // 表示这是一个由FXML控制器调用的方法
+    // 重名检测：使用pd包PCB的getPid()
+    for (PCB pcb : mm.getPcbs()) {
+        if (String.valueOf(pcb.getPid()).equals(pid)) {  // int pid转String比较
+            log.appendText("创建失败：进程 " + pid + " 已存在\n");
+            return;
+        }
+    }
+
+    int idx = mm.load(pid, size);
+    if (idx == -1) {
+        log.appendText("分配失败：无合适空闲区或 PCB 已满\n");
+    } else {
+        log.appendText("成功载入 " + pid + "\n");
+    }
+    draw();
+}*/
+/*    @FXML  // 表示这是一个由FXML控制器调用的方法
     private void onUnload() {  // 卸载进程的方法
         String pid = nameField.getText().trim();  // 获取输入框中的进程ID并去除前后空格
         boolean ok = mm.unload(pid);  // 调用卸载方法，尝试卸载指定进程
@@ -118,7 +157,7 @@ public class MemoryController {
         else log.appendText("卸载失败：进程不存在\n");  // 如果卸载失败，向日志区域添加失败信息
         draw();  // 调用draw方法更新界面显示
     }
-
+*/
     /* 画内存图 */
     private void draw() {
         // 获取画图的图形上下文
@@ -128,7 +167,7 @@ public class MemoryController {
 
         double totalBytes = 128.0 + 512.0;          // 系统区+用户区总字节
         double scaleX = canvas.getWidth()  / totalBytes;
-        double scaleY = canvas.getHeight() / 30.0;  // 高度固定30像素
+        double scaleY = canvas.getHeight() / 25.0;  // 高度固定30像素
 
         g.save();
         g.scale(scaleX, scaleY); // 整体等比缩放

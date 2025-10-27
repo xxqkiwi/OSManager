@@ -58,6 +58,7 @@ public class PCB {
     public int getBlockReason() { return blockReason; }
     public void setBlockReason(int blockReason) { this.blockReason = blockReason; }
     public List<String> getInstructions() { return instructions; }
+    public void setMemoryStart(int memoryStart) { this.memoryStart = memoryStart; }
     public int getMemoryStart() { return memoryStart; }
     public int getMemorySize() { return memorySize; }
 

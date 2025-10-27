@@ -21,7 +21,7 @@ public class MainLayout {
         init(stage);
     }
 
-    private Stage primaryStage;  // 这一行是新增的
+    private Stage primaryStage;
 
 
     public void init(Stage stage) {
@@ -31,7 +31,7 @@ public class MainLayout {
         bgView.fitWidthProperty().bind(stage.widthProperty());
         bgView.fitHeightProperty().bind(stage.heightProperty());
 
-        // app1图标
+        // 文件管理图标
         Image appImage = new Image(getClass().getResourceAsStream("/org/example/disktest2/images/file.jpg"));
         ImageView appView = new ImageView(appImage);
         appView.setFitHeight(50);
@@ -55,7 +55,7 @@ public class MainLayout {
         });
 
 
-        // app2图标（
+        // 进程管理图标
         Image appImage_P = new Image(getClass().getResourceAsStream("/org/example/disktest2/images/process.png"));
         ImageView appView_P = new ImageView(appImage_P);
         appView_P.setFitHeight(50);
@@ -79,9 +79,34 @@ public class MainLayout {
         });
 
 
-        //创建水平容器放置两个应用图标，间距设为20
+        // 内存管理图标
+        Image memoryImage = new Image(getClass().getResourceAsStream("/org/example/disktest2/images/memory.png"));
+        ImageView memoryView = new ImageView(memoryImage);
+        memoryView.setFitHeight(50);
+        memoryView.setFitWidth(50);
+        Label memoryName = new Label("内存管理");
+        VBox memoryApp = new VBox(10);
+        memoryApp.getChildren().addAll(memoryView, memoryName);
+        // 绑定点击事件
+        memoryView.setOnMouseClicked(mouseEvent -> {
+            try {
+                openMemoryManage();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        memoryName.setOnMouseClicked(mouseEvent -> {
+            try {
+                openMemoryManage();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+
+        //创建水平容器放置三个应用图标，间距设为20
         HBox appContainer = new HBox(20);
-        appContainer.getChildren().addAll(app, app_p); // 将app1和app2添加到HBox
+        appContainer.getChildren().addAll(app, app_p, memoryApp); // 添加内存管理图标
 
         StackPane root = new StackPane();
         root.getChildren().add(0, bgView);//背景图片放最底层
@@ -109,6 +134,21 @@ public class MainLayout {
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("打开进程管理界面失败：" + e.getMessage());
+        }
+    }
+    // 新增：打开内存管理界面的方法
+    public void openMemoryManage() throws IOException {
+        try {
+            Stage memoryStage = new Stage();
+            memoryStage.initOwner(primaryStage);
+            memoryStage.setTitle("内存管理");
+            FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("memory/memory-view.fxml"));
+            Scene scene = new Scene(fxmlLoader.load(), 1000, 600);
+            memoryStage.setScene(scene);
+            memoryStage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("打开内存管理界面失败：" + e.getMessage());
         }
     }
 }

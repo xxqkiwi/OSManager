@@ -1,5 +1,6 @@
 package org.example.disktest2.pd.service;
 
+import org.example.disktest2.memory.MemoryManager;
 import org.example.disktest2.pd.domain.enums.DeviceType;
 import org.example.disktest2.pd.domain.enums.InterruptType;
 import org.example.disktest2.pd.domain.enums.ProcessState;
@@ -60,20 +61,24 @@ public class ProcessManager {
             return false;
         }
 
-        // 重建PCB（设置实际指令和内存）
-        PCB newPcb = new PCB(freePcb.getPid(), exeFile, instructions, memorySize);
-        if (newPcb.isMemoryOverflow()) {
-            System.out.println("创建失败：内存超过512字节限制");
-            freePcbQueue.add(freePcb); // 归还空白PCB
+        // 尝试分配内存
+        int memoryStart = MemoryManager.get().load(String.valueOf(freePcb.getPid()), memorySize);
+        if (memoryStart == -1) { // 分配失败
+            freePcbQueue.add(freePcb);
+            System.out.println("创建失败：内存不足");
             return false;
         }
 
-        // 移除闲逛进程（如果存在）
+        // 初始化PCB（使用实际分配的内存地址）
+        PCB newPcb = new PCB(freePcb.getPid(), exeFile, instructions, memorySize);
+        newPcb.setMemoryStart(memoryStart); // 设置真实内存起始地址
+
+        // 加入就绪队列
         if (readyQueue.getSnapshot().stream().anyMatch(p -> p.getPid() == 0)) {
             readyQueue.poll(); // 移除闲逛进程
         }
         readyQueue.add(newPcb);
-        System.out.printf("进程创建成功：PID=%d%n", newPcb.getPid());
+        System.out.printf("进程创建成功：PID=%d，内存地址=%d%n", newPcb.getPid(), memoryStart);
         return true;
     }
 
@@ -92,21 +97,23 @@ public class ProcessManager {
         }
 
         // 回收内存
-        System.out.printf("释放内存：%d-%d%n",
-                target.getMemoryStart(),
-                target.getMemoryStart() + target.getMemorySize() - 1);
+        boolean isUnloaded = MemoryManager.get().unload(String.valueOf(pid));
+        if (isUnloaded) {
+            System.out.printf("释放内存：%d-%d%n",
+                    target.getMemoryStart(),
+                    target.getMemoryStart() + target.getMemorySize() - 1);
+        }
 
         // 归还PCB到空白队列
         target.setState(ProcessState.TERMINATED);
         freePcbQueue.add(target);
 
-        // 若为运行态，触发结束中断
+        // 处理运行态进程中断
         if (runningPcb != null && runningPcb.getPid() == pid) {
             runningPcb = null;
             currentInterrupt = InterruptType.END_INTERRUPT;
         }
 
-        // 就绪队列为空时，加入闲逛进程
         if (readyQueue.isEmpty()) {
             readyQueue.add(idleProcess);
         }

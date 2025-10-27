@@ -1,4 +1,4 @@
-package org.example.disktest2.memory.memoryfx;
+package org.example.disktest2.memory;
 
 /**
  * 内存块类，用于表示内存中的一个块
