@@ -116,6 +116,7 @@ public class MainLayout {
         stage.show();
     }
 
+    //打开文件管理界面
     public void openFileManage() throws IOException {
         System.out.println("open fileManage");
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("diskPane.fxml"));
@@ -126,6 +127,7 @@ public class MainLayout {
         fileManageStage.show();
     }
 
+    //打开进程管理界面
     public void openProcessManage() throws IOException {
         try {
             Stage processStage = new Stage();
@@ -136,7 +138,7 @@ public class MainLayout {
             System.err.println("打开进程管理界面失败：" + e.getMessage());
         }
     }
-    // 新增：打开内存管理界面的方法
+    // 打开内存管理界面的方法
     public void openMemoryManage() throws IOException {
         try {
             Stage memoryStage = new Stage();

@@ -19,8 +19,10 @@ public class ProcessService {
     // 构造注入依赖
     public ProcessService() {
         SystemClock clock = new SystemClock();
-        DeviceManager deviceManager = new DeviceManager();
-        this.processManager = new ProcessManager(clock, deviceManager);
+        ProcessManager processManager = new ProcessManager(clock, null); // 先创建空依赖
+        DeviceManager deviceManager = new DeviceManager(processManager); // 注入processManager
+        processManager.setDeviceManager(deviceManager); // 反向设置设备管理器
+        this.processManager = processManager;
     }
 
     // 获取所有进程详情

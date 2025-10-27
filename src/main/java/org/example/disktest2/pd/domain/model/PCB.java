@@ -20,7 +20,7 @@ public class PCB {
     private int memoryStart;         // 内存起始地址
     private int memorySize;          // 内存大小
     private int remainingTimeSlice;        // 剩余时间片
-    private static final int DEFAULT_TIME_SLICE = 6; // 默认时间片
+    private static final int DEFAULT_TIME_SLICE = 4; // 默认时间片
 
     // 构造方法：初始化流程
     public PCB(int pid, String exeFile, List<String> instructions, int memorySize) {

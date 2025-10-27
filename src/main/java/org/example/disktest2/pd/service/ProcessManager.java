@@ -4,6 +4,7 @@ import org.example.disktest2.memory.MemoryManager;
 import org.example.disktest2.pd.domain.enums.DeviceType;
 import org.example.disktest2.pd.domain.enums.InterruptType;
 import org.example.disktest2.pd.domain.enums.ProcessState;
+import org.example.disktest2.pd.domain.model.Device;
 import org.example.disktest2.pd.domain.model.PCB;
 import org.example.disktest2.pd.infrastructure.SystemClock;
 import org.example.disktest2.pd.infrastructure.ThreadSafeQueue;
@@ -11,6 +12,7 @@ import org.example.disktest2.pd.infrastructure.ThreadSafeQueue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 /**
@@ -20,16 +22,16 @@ public class ProcessManager {
     // 队列管理（空白/就绪/阻塞队列）
     private final ThreadSafeQueue<PCB> freePcbQueue = new ThreadSafeQueue<>();
     private final ThreadSafeQueue<PCB> readyQueue = new ThreadSafeQueue<>();
-    private final ThreadSafeQueue<PCB> blockedQueue = new ThreadSafeQueue<>();
+    private ThreadSafeQueue<PCB> blockedQueue = new ThreadSafeQueue<>();
     private PCB runningPcb; // 当前运行进程
     private final PCB idleProcess; // 闲逛进程
 
     // 依赖服务
     private final SystemClock systemClock;
-    private final DeviceManager deviceManager;
+    private DeviceManager deviceManager;
 
-    // 时间片配置（时间片=6）
-    private final int timeSlice = 6;
+    // 时间片配置（时间片=4）
+    private final int timeSlice = 4;
     private int remainingTime = timeSlice;
     private InterruptType currentInterrupt = InterruptType.NO_INTERRUPT;
 
@@ -46,6 +48,10 @@ public class ProcessManager {
         this.idleProcess = new PCB(0, "idle.exe", List.of("idle"), 16);
         this.idleProcess.setState(ProcessState.READY);
         readyQueue.add(idleProcess);
+    }
+
+    public void setDeviceManager(DeviceManager deviceManager) {
+        this.deviceManager = deviceManager;
     }
 
     /**
@@ -95,6 +101,8 @@ public class ProcessManager {
             System.out.printf("撤销失败：PID=%d不存在%n", pid);
             return false;
         }
+        // 释放该进程占用的所有设备
+        releaseProcessDevices(pid); // 调用设备释放方法
 
         // 回收内存
         boolean isUnloaded = MemoryManager.get().unload(String.valueOf(pid));
@@ -120,6 +128,25 @@ public class ProcessManager {
         System.out.printf("进程撤销成功：PID=%d%n", pid);
         return true;
     }
+
+    // 释放进程占用的设备并唤醒等待队列
+    private void releaseProcessDevices(int pid) {
+        for (DeviceType type : DeviceType.values()) {
+            List<Device> deviceList = deviceManager.getDevices().get(type);
+            for (Device device : deviceList) {
+                if (device.isInUse() && device.getUsingPid() == pid) {
+                    device.release(); // 释放设备
+                    // 唤醒等待队列中的下一个进程
+                    Queue<Integer> waitQueue = deviceManager.getDeviceWaitQueues().get(type);
+                    if (!waitQueue.isEmpty()) {
+                        int nextPid = waitQueue.poll();
+                        awakeProcess(nextPid); // 需实现唤醒逻辑（如移至就绪队列）
+                    }
+                }
+            }
+        }
+    }
+
 
     /**
      * 进程阻塞原语
@@ -152,25 +179,31 @@ public class ProcessManager {
      * 1. 从阻塞队列查找对应设备的进程
      * 2. 状态改为就绪，加入就绪队列
      */
-    public boolean awakeProcess(int deviceType) {
+    public boolean awakeProcess(int pid) {
+        // 从阻塞队列查找目标进程
         List<PCB> blockedSnapshot = (List<PCB>) blockedQueue.getSnapshot();
         Optional<PCB> toAwake = blockedSnapshot.stream()
-                .filter(p -> p.getBlockReason() == deviceType)
+                .filter(p -> p.getPid() == pid)
                 .findFirst();
 
         if (toAwake.isEmpty()) {
-            System.out.println("唤醒失败：无对应阻塞进程");
+            System.out.println("唤醒失败：PID=" + pid + " 未处于阻塞状态");
             return false;
         }
 
         // 从阻塞队列移除并加入就绪队列
         PCB pcb = toAwake.get();
-        removeFromBlockedQueue(pcb.getPid()); // 实际移除
-        pcb.setBlockReason(-1);
+        removeFromBlockedQueue(pid); // 实际移除队列元素
+        pcb.setBlockReason(-1); // 清除阻塞原因
         pcb.setState(ProcessState.READY);
         readyQueue.add(pcb);
 
-        System.out.printf("进程唤醒成功：PID=%d%n", pcb.getPid());
+        // 若当前无运行进程，立即调度
+        if (runningPcb == null || runningPcb.getPid() == idleProcess.getPid()) {
+            schedule();
+        }
+
+        System.out.printf("进程唤醒成功：PID=%d%n", pid);
         return true;
     }
 
@@ -200,7 +233,7 @@ public class ProcessManager {
      * CPU执行模拟（指令执行+中断处理）
      */
     public String executeInstruction() {
-        // 处理中断（指导书1-441：先检查中断）
+        // 处理中断
         String interruptMsg = handleInterrupt();
         if (!interruptMsg.isEmpty()) {
             return interruptMsg;
@@ -339,24 +372,21 @@ public class ProcessManager {
         // 检查就绪队列
         Optional<PCB> ready = readyQueue.getSnapshot().stream()
                 .filter(p -> p.getPid() == pid).findFirst();
+        // 检查阻塞队列
         return ready.orElseGet(() -> blockedQueue.getSnapshot().stream()
                 .filter(p -> p.getPid() == pid).findFirst().orElse(null));
-        // 检查阻塞队列
     }
 
     // 辅助方法：从阻塞队列移除进程
     private void removeFromBlockedQueue(int pid) {
-        ThreadSafeQueue<PCB> temp = new ThreadSafeQueue<>();
+        ThreadSafeQueue<PCB> newQueue = new ThreadSafeQueue<>();
         while (!blockedQueue.isEmpty()) {
-            PCB p = blockedQueue.poll();
-            if (p.getPid() != pid) {
-                temp.add(p);
+            PCB pcb = blockedQueue.poll();
+            if (pcb.getPid() != pid) {
+                newQueue.add(pcb);
             }
         }
-        // 放回非目标进程
-        while (!temp.isEmpty()) {
-            blockedQueue.add(temp.poll());
-        }
+        blockedQueue = newQueue;
     }
 
     // 暴露状态供UI使用

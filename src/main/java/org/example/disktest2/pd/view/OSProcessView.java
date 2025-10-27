@@ -20,10 +20,8 @@ import org.example.disktest2.pd.domain.enums.ProcessFilter;
 import org.example.disktest2.pd.domain.enums.ProcessState;
 import org.example.disktest2.pd.domain.model.Device;
 import org.example.disktest2.pd.domain.model.PCB;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -224,7 +222,7 @@ public class OSProcessView extends Application {
         root.setBottom(bottomBox);
 
         // 显示界面
-        Scene scene = new Scene(root, 1200, 800);
+        Scene scene = new Scene(root, 900, 800);
         stage.setScene(scene);
         stage.show();
 
@@ -233,21 +231,22 @@ public class OSProcessView extends Application {
     }
 
     private void createTestProcess() {
-        char[] devices = {'A', 'B', 'C'};
-        char randomDevice = devices[new Random().nextInt(3)];
-        int useTime = new Random().nextInt(3) + 1;
+        // 随机选择一个可执行文件
+        ExeFile randomExe = EXE_FILES.get(new Random().nextInt(EXE_FILES.size()));
 
-        List<String> instructions = Arrays.asList(
-                "x=10",
-                "x++",
-                "!%c %d".formatted(randomDevice, useTime),
-                "x--",
-                "end"
+        // 直接使用该文件的指令集（保证指令兼容且不同文件指令有差异）
+        List<String> instructions = randomExe.getInstructions();
+
+        // 创建进程时传入选中的文件名
+        boolean success = processService.createProcess(
+                randomExe.getName(),
+                instructions,
+                32  // 内存大小保持不变
         );
 
-        boolean success = processService.createProcess("test.e", instructions, 32);
+        // 日志提示更新为选中的文件名
         logArea.appendText(success ?
-                "创建进程成功（使用设备" + randomDevice + "，时长" + useTime + "）\n" :
+                "创建进程成功（文件：" + randomExe.getName() + "）\n" :
                 "创建进程失败（已禁止或资源不足）\n");
         updateUI();
     }
@@ -368,7 +367,7 @@ public class OSProcessView extends Application {
         ProcessFilter filter = filterCombo.getValue();
         ProcessState highlightState = highlightCombo.getValue();
 
-        // 应用过滤（保持不变）
+        // 应用过滤
         List<ProcessDetail> filtered = allDetails.stream()
                 .filter(detail -> {
                     if (filter == ProcessFilter.ALL) return true;
@@ -385,33 +384,35 @@ public class OSProcessView extends Application {
 
         processTable.getItems().setAll(filtered);
 
-        // 根据不同状态设置不同颜色
+        // 定义状态与颜色的映射关系
+        Map<ProcessState, String> stateColorMap = new HashMap<>();
+        stateColorMap.put(ProcessState.RUNNING, "#99ff99");    // 运行中-浅绿色
+        stateColorMap.put(ProcessState.READY, "#ffff99");      // 就绪中-浅黄色
+        stateColorMap.put(ProcessState.TERMINATED, "#ff9999"); // 终止-浅红色
+        stateColorMap.put(ProcessState.BLOCKED, "#9999ff");    // 阻塞-浅蓝色
+
+        // 设置表格行高亮逻辑
         processTable.setRowFactory(tv -> new TableRow<ProcessDetail>() {
             @Override
             protected void updateItem(ProcessDetail item, boolean empty) {
                 super.updateItem(item, empty);
-                // 清除之前的样式
-                setStyle("");
+
+                // 清除所有高亮样式
+                getStyleClass().removeAll("highlighted-row", "default-row");
+                setStyle(""); // 重置行样式
 
                 if (!empty && item != null) {
-                    // 根据进程状态设置不同背景色
-                    ProcessState state = item.getState();
-                    switch (state) {
-                        case READY:
-                            setStyle("-fx-background-color: pink;");
-                            break;
-                        case RUNNING:
-                            setStyle("-fx-background-color: lightgreen;");
-                            break;
-                        case BLOCKED:
-                            setStyle("-fx-background-color: red;");
-                            break;
-                        case TERMINATED:
-                            setStyle("-fx-background-color: lightyellow;");
-                            break;
-                        // 其他状态（如果有的话）保持默认样式
-                        default:
-                            setStyle("");
+                    // 获取当前选择的高亮状态
+                    ProcessState highlightState = highlightCombo.getValue();
+
+                    // 只有当选择了具体状态且匹配时才设置高亮
+                    if (highlightState != null && item.getState() == highlightState) {
+                        // 从映射中获取对应颜色，默认使用灰色
+                        String color = stateColorMap.getOrDefault(highlightState, "#e0e0e0");
+                        setStyle("-fx-background-color: " + color + ";");
+                        getStyleClass().add("highlighted-row");
+                    } else {
+                        getStyleClass().add("default-row");
                     }
                 }
             }
@@ -419,6 +420,34 @@ public class OSProcessView extends Application {
 
         // 强制刷新表格以应用样式
         processTable.refresh();
+    }
+
+    // 定义10个可执行文件及其指令集（基于基础指令扩展）
+    private static final List<ExeFile> EXE_FILES = Arrays.asList(
+            new ExeFile("p1.exe", Arrays.asList("x=0", "x++", "!B 2", "x--", "x++", "end")),
+            new ExeFile("p2.exe", Arrays.asList("x=5", "x++", "!B 3", "x--", "x=9","end")),
+            new ExeFile("p3.exe", Arrays.asList("x=0", "x++", "!C 1", "x--", "end")),
+            new ExeFile("p4.exe", Arrays.asList("x=3", "x++", "!A 2", "x--", "end")),
+            new ExeFile("p5.exe", Arrays.asList("x=7", "x++", "!B 1", "x--","x--","x--", "end")),
+            new ExeFile("p6.exe", Arrays.asList("x=5", "x++", "!C 2", "x--", "end")),
+            new ExeFile("p7.exe", Arrays.asList("x=6", "x++", "!A 2", "x--", "x++","x++","x++","end")),
+            new ExeFile("p8.exe", Arrays.asList("x=4", "x++", "!B 3", "x--", "end")),
+            new ExeFile("p9.exe", Arrays.asList("x=8", "x++", "!C 3", "x--", "end")),
+            new ExeFile("p10.exe",Arrays.asList("x=9", "x++", "!A 1", "x--", "end"))
+    );
+
+    // 内部类：封装可执行文件信息
+    private static class ExeFile {
+        private final String name;
+        private final List<String> instructions;
+
+        public ExeFile(String name, List<String> instructions) {
+            this.name = name;
+            this.instructions = instructions;
+        }
+
+        public String getName() { return name; }
+        public List<String> getInstructions() { return instructions; }
     }
 
     public static void main(String[] args) {
