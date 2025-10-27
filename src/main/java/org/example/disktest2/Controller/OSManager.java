@@ -1,20 +1,28 @@
 package org.example.disktest2.Controller;
 
+import org.example.disktest2.entity.FileModel;
+
+import java.awt.*;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class OSManager {
-    private Map<String,FileModel> totalFiles = new HashMap<String, FileModel>();
+    private List<FileModel> totalFiles = new ArrayList<FileModel>();
     //FAT表
     private int[] fat = new int[128];
 
-    public Map<String, FileModel> getTotalFiles() {
+    public List<FileModel> getTotalFiles() {
         return totalFiles;
     }
 
     //根目录
-    public FileModel root = new FileModel("root",1);
+    private FileModel root = new FileModel("root",2);
     public FileModel nowCatalog = root;
 
     public FileModel getRoot(){
@@ -22,14 +30,14 @@ public class OSManager {
     }
 
     public OSManager(){
-        for (int i = 2; i < 128; i++) {
+        for (int i = 3; i < 128; i++) {
             fat[i]=0;
         }
         fat[0] = 126; //磁盘剩余块数
         fat[1] = -1; //存根目录,表示已被占用
-
-        root.setFather(root);
-        totalFiles.put("root",root);
+        fat[2] = -1;
+        //root.setFather(root);
+        totalFiles.add(root);
     }
 
     public int[] getFat() {
@@ -37,10 +45,13 @@ public class OSManager {
     }
 
     public int setFat(int size) {
-        int[] startNum = new int[size];
+        int blockNum = size / 64; //占据的盘块数
+        if(size%64 != 0) blockNum ++;
+
+        int[] startNum = new int[blockNum]; //fat表里指向下一个盘块的指针
         int i = 2;
         //j表示分给该文件的第j个块
-        for(int j = 0; j < size; i++) {
+        for(int j = 0; j < blockNum; i++) {
             if(fat[i] == 0) {
                 startNum[j] = i;
                 if(j > 0) {
@@ -82,7 +93,7 @@ public class OSManager {
     }
 
     //创建文件
-    public int createFile(String name, String type, int size) {
+   /* public int createFile(String name, String type, int size) {
         if(fat[0] >= size) {
             FileModel value = nowCatalog.subMap.get(name);
             if(value != null) {
@@ -122,46 +133,47 @@ public class OSManager {
             System.out.println("磁盘空间已满，创建失败");
             return 2;
         }
-    }
+    }*/
 
-    //创建目录/文件夹
-    public int createCatalog(String name) {
-        if(fat[0] >= 1) {
-            FileModel value = nowCatalog.subMap.get(name);
-            if(((value != null) && (value.getAttr() == 2))) {
-                FileModel catalog = new FileModel(name,3,setFat(1));
-                catalog.setFather(nowCatalog);
-                nowCatalog.subMap.put(name,catalog);
-                fat[0] --;
-                totalFiles.put(catalog.getName(), catalog);
-                System.out.println("创建目录成功！");
-                showFile();
-                return 0;
-            } else if (value == null) {
-                FileModel catalog = new FileModel(name,3,setFat(1));
-                catalog.setFather(nowCatalog);
-                nowCatalog.subMap.put(name,catalog);
-                fat[0] --;
-                totalFiles.put(catalog.getName(), catalog);
-                System.out.println("创建目录成功！");
-                showFile();
-                return 0;
-            } else {
-                System.out.println("创建失败,已存在同名目录");
-                showFile();
-                return 1;
-            }
-        } else {
-            System.out.println("磁盘空间已满，创建失败");
-            return 2;
-        }
-    }
+    //创建目录
+//    public int createCatalog(String name) {
+//        if(fat[0] >= 1) {
+//            FileModel value = nowCatalog.subMap.get(name);
+//            if(((value != null) && (value.getAttr() == 2))) {
+//                FileModel catalog = new FileModel(name,setFat(1));
+//                catalog.setFather(nowCatalog);
+//                nowCatalog.subMap.put(name,catalog);
+//                fat[0] --;
+//                totalFiles.put(catalog.getName(), catalog);
+//                System.out.println("创建目录成功！");
+//                showFile();
+//                return 0;
+//            } else if (value == null) {
+//                FileModel catalog = new FileModel(name,setFat(1));
+//                catalog.setFather(nowCatalog);
+//                nowCatalog.subMap.put(name,catalog);
+//                fat[0] --;
+//                totalFiles.put(catalog.getName(), catalog);
+//                System.out.println("创建目录成功！");
+//                showFile();
+//                return 0;
+//            } else {
+//                System.out.println("创建失败,已存在同名目录");
+//                showFile();
+//                return 1;
+//            }
+//        } else {
+//            System.out.println("磁盘空间已满，创建失败");
+//            return 2;
+//        }
+//    }
 
 
-    // 文件创建方法
+    // 新的文件创建方法
     public int createFileByPath(String path) {
         String fileName = getFileName(path);
         String parentPath = getParentPath(path);
+        int size = 8; // 文件默认大小8字节
 
         System.out.println(fileName + " " + parentPath);
         if (fileName.isEmpty()) {
@@ -182,14 +194,13 @@ public class OSManager {
         }
 
         // 检查磁盘空间
-        if (fat[0] < 1) {
+        if (fat[0] < size) {
             return 2; // 磁盘空间不足
         }
 
         // 解析文件名和扩展名
         String name = fileName;
         String type = "";
-        int size = 1; // 默认大小
 
         int dotIndex = fileName.lastIndexOf('.');
         if (dotIndex > 0) {
@@ -202,8 +213,9 @@ public class OSManager {
         FileModel file = new FileModel(name, type, startNum, size);
         file.setFather(parentDir);
         parentDir.subMap.put(fileName, file);
-        totalFiles.put(fileName, file);
+        totalFiles.add(file);
         fat[0] -= size;
+        file.setFos(path);
 
         System.out.println("创建文件成功：" + path);
         showFile();
@@ -275,13 +287,12 @@ public class OSManager {
         }
 
         FileModel file = parentDir.subMap.get(fileName);
+        if(file.getAttr() == 3) return 2;//不是文件是目录
+
         if (file == null) {
             return 1; // 文件不存在
         }
 
-        if (!file.subMap.isEmpty()) {
-            return 2; // 目录不为空
-        }
 
         if (fat[0] >= 126) {
             return 3; // 磁盘为空
@@ -290,8 +301,11 @@ public class OSManager {
         // 删除文件
         delFat(file.getStartNum());
         parentDir.subMap.remove(fileName);
-        totalFiles.remove(fileName);
+        totalFiles.remove(file);
         fat[0] += file.getSize();
+        FileOutputStream fos = file.getFos();
+        File f = new File(path);
+        f.delete();
 
         System.out.println("删除文件成功：" + path);
         showFile();
@@ -373,7 +387,7 @@ public class OSManager {
             } else {
                 delFat(value.getStartNum());
                 nowCatalog.subMap.remove(name);
-                totalFiles.remove(name); // 从totalFiles中移除文件
+                totalFiles.remove(value); // 从totalFiles中移除文件
                 fat[0] += value.getSize();
                 System.out.println("删除成功");
                 showFile();
@@ -457,7 +471,7 @@ public class OSManager {
 
         FileModel temp = nowCatalog;
 
-        if(totalFiles.containsKey(roadName[roadName.length - 1])) {
+        if(totalFiles.contains(roadName[roadName.length - 1])) {
             nowCatalog = root;
             if(nowCatalog.getName().equals(roadName[1])) {
                 for(int i = 1; i < roadName.length ; i++) {
@@ -520,7 +534,7 @@ public class OSManager {
         if(pathParts[0].equals("root") && pathParts.length == 1) return current;
 
         for (String part : pathParts) {
-            if (part.isEmpty()) continue;
+            if (part.isEmpty() || part.equals("root")) continue; //当前目录为父目录就跳过，防止影响下一个if语句
             System.out.println("part " + part);
             if (current.subMap.containsKey(part)) {
                 FileModel next = current.subMap.get(part);
@@ -582,21 +596,24 @@ public class OSManager {
             return "";
         }
 
-        // 统一路径格式：替换反斜杠为正斜杠，移除开头的/
-        path = path.replaceAll("\\\\", "/").replaceAll("^/+", "");
+        // 处理路径，移除开头的反斜杠
+        if (path.startsWith("\\")) {
+            path = path.substring(1);
+        }
+
         if (path.isEmpty()) {
             return "";
         }
 
-        String[] pathParts = path.split("/");
+        String[] pathParts = path.split("\\\\");
         if (pathParts.length <= 1) {
-            return ""; // 只有文件名，父路径为空（对应根目录）
+            return "";
         }
 
         StringBuilder parentPath = new StringBuilder();
         for (int i = 0; i < pathParts.length - 1; i++) {
             if (i > 0) {
-                parentPath.append("/"); // 用/拼接父路径
+                parentPath.append("\\");
             }
             parentPath.append(pathParts[i]);
         }
@@ -610,14 +627,42 @@ public class OSManager {
             return "";
         }
 
-        // 统一路径格式
-        path = path.replaceAll("\\\\", "/").replaceAll("^/+", "");
+        // 处理路径，移除开头的反斜杠
+        if (path.startsWith("\\")) {
+            path = path.substring(1);
+        }
+
         if (path.isEmpty()) {
             return "";
         }
 
-        String[] pathParts = path.split("/");
-        return pathParts[pathParts.length - 1]; // 最后一部分为文件名
+        String[] pathParts = path.split("\\\\");
+        return pathParts[pathParts.length - 1];
+    }
+
+    //构建完整路径
+    private String buildFullPath(FileModel dir) {
+        if (dir == null) {
+            return "";
+        }
+
+        StringBuilder path = new StringBuilder();
+        FileModel current = dir;
+
+        while (current != null && current != root) {
+            if (path.length() > 0) {
+                path.insert(0, "\\");
+            }
+            path.insert(0, current.getName());
+            current = current.getFather();
+        }
+
+        if (path.length() > 0) {
+            path.insert(0, "\\");
+        }
+        path.insert(0, "root");
+
+        return path.toString();
     }
 
     //打开文件，显示文件内容
@@ -637,7 +682,6 @@ public class OSManager {
 
         System.out.println("type操作，文件名为：" + fileName);
         FileModel file = parentDir.subMap.get(fileName);
-        System.out.println("type操作的file.attribution" + file.getAttr());
         if (file == null) {
             return 1; // 文件不存在
         }
@@ -647,6 +691,12 @@ public class OSManager {
             System.out.println("文件名：" + file.getName() + "." + file.getType());
             System.out.println("大小：" + file.getSize() + " 块");
             System.out.println("起始块：" + file.getStartNum());
+            File f = new File(parentPath, fileName);
+            try {
+                Desktop.getDesktop().open(f);//打开文件--不论什么OS都可打开
+            } catch (IOException e) {
+                throw new RuntimeException("打开文件失败：" + e.getMessage());
+            }
         } else {
             System.out.println("这是一个目录，不是文件");
             return 3;
@@ -658,11 +708,9 @@ public class OSManager {
     public int copyFile(String sourcePath, String targetPath) {
         String sourceFileName = getFileName(sourcePath);
         String sourceParentPath = getParentPath(sourcePath);
-        String targetFileName = getFileName(targetPath);
-        String targetParentPath = getParentPath(targetPath);
 
-        if (sourceFileName.isEmpty() || targetFileName.isEmpty()) {
-            return 2; // 路径错误
+        if (sourceFileName.isEmpty()) {
+            return 2; // 源路径错误
         }
 
         // 获取源文件
@@ -676,10 +724,34 @@ public class OSManager {
             return 1; // 源文件不存在
         }
 
-        // 获取目标目录
-        FileModel targetParentDir = navigateToPath(targetParentPath);
-        if (targetParentDir == null) {
-            return 2; // 目标路径错误
+        // 检查源文件是否为目录
+        if (sourceFile.getAttr() == 3) {
+            return 5; // 不能复制目录
+        }
+
+        // 确定目标目录和文件名
+        FileModel targetParentDir;
+        String targetFileName;
+
+        // 检查目标路径是否为目录
+        FileModel targetDir = navigateToPath(targetPath);
+        if (targetDir != null && targetDir.getAttr() == 3) {
+            // 目标路径是目录，使用源文件名
+            targetParentDir = targetDir;
+            targetFileName = sourceFileName;
+        } else {
+            // 目标路径是文件路径，解析父目录和文件名
+            targetFileName = getFileName(targetPath);
+            String targetParentPath = getParentPath(targetPath);
+
+            if (targetFileName.isEmpty()) {
+                return 2; // 目标路径错误
+            }
+
+            targetParentDir = navigateToPath(targetParentPath);
+            if (targetParentDir == null) {
+                return 2; // 目标路径错误
+            }
         }
 
         // 检查目标文件是否已存在
@@ -694,13 +766,21 @@ public class OSManager {
 
         // 复制文件
         int startNum = setFat(sourceFile.getSize());
-        FileModel newFile = new FileModel(targetFileName, sourceFile.getType(), startNum, sourceFile.getSize());
+
+        FileModel newFile = new FileModel(sourceFile.getName(), sourceFile.getType(), startNum, sourceFile.getSize());
         newFile.setFather(targetParentDir);
         targetParentDir.subMap.put(targetFileName, newFile);
-        totalFiles.put(targetFileName, newFile);
+        totalFiles.add(newFile);
+
         fat[0] -= sourceFile.getSize();
 
-        System.out.println("复制文件成功：" + sourcePath + " -> " + targetPath);
+        // 构建完整的目标路径用于文件系统操作
+        String fullTargetPath = buildFullPath(targetParentDir) + "\\" + targetFileName;
+        newFile.setFos(fullTargetPath);
+
+        System.out.println("源文件起始块: " + sourceFile.getStartNum());
+        System.out.println("目标文件起始块: " + startNum);
+        System.out.println("复制文件成功：" + sourcePath + " -> " + fullTargetPath);
         showFile();
         return 0;
     }
@@ -708,6 +788,7 @@ public class OSManager {
     public int createDirectoryByPath(String path) {
         String dirName = getFileName(path);
         String parentPath = getParentPath(path);
+        int size = 7; // 目录默认大小7字节
 
         if (dirName.isEmpty()) {
             return 3; // 路径错误
@@ -724,7 +805,7 @@ public class OSManager {
         }
 
         // 检查磁盘空间
-        if (fat[0] < 1) {
+        if (fat[0] < size) {
             return 2; // 磁盘空间不足
         }
 
@@ -733,15 +814,22 @@ public class OSManager {
         FileModel directory = new FileModel(dirName, startNum);
         directory.setFather(parentDir);
         parentDir.subMap.put(dirName, directory);
-        totalFiles.put(dirName, directory);
+        totalFiles.add(directory);
         fat[0]--;
+        File dir = new File(parentPath,dirName);
+        if(dir.mkdir()) {
+            System.out.println("创建目录成功：" + path);
+            showFile();
+        } else {
+            System.out.println("创建目录失败：" + path);
+            return 3;
+        }
 
-        System.out.println("创建目录成功：" + path);
         showFile();
         return 0;
     }
 
-    public int removeDirectoryByPath(String path) {
+    public int removeDirectoryByPath(String path) throws IOException {
         String dirName = getFileName(path);
         String parentPath = getParentPath(path);
 
@@ -766,44 +854,19 @@ public class OSManager {
         // 删除目录
         delFat(directory.getStartNum());
         parentDir.subMap.remove(dirName);
-        totalFiles.remove(dirName);
+        totalFiles.remove(directory);
         fat[0] += directory.getSize();
-
-        System.out.println("删除目录成功：" + path);
-        showFile();
-        return 0;
-    }
-
-    public int removeDirectoryByPathAndParentDir(String path,FileModel parentDir) {
-        String dirName = getFileName(path);
-
-        if (dirName.isEmpty()) {
-            return 3; // 路径错误
+        File dir = new File(path);
+        //if(dir.delete()) {
+        try {
+            if(Files.deleteIfExists(dir.toPath())) {
+                System.out.println("删除目录成功" + path);
+                showFile();
+                return 0;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("删除目录失败" + e.getMessage());
         }
-
-        if (parentDir == null) {
-            return 3; // 路径错误
-        }
-
-        FileModel directory = parentDir.subMap.get(dirName);
-        if (directory == null) {
-            return 1; // 目录不存在
-        }
-
-        if (!directory.subMap.isEmpty()) {
-            return 2; // 目录不为空
-        }
-
-        // 删除目录
-        delFat(directory.getStartNum());
-        parentDir.subMap.remove(dirName);
-        totalFiles.remove(dirName);
-        fat[0] += directory.getSize();
-
-        System.out.println("删除目录成功：" + path);
-        showFile();
-        return 0;
+        return 3;
     }
 }
-
-
