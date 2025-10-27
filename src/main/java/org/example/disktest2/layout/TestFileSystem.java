@@ -440,7 +440,7 @@ public class TestFileSystem implements Initializable {
         FatPane.getChildren().clear();
         nameByIndex[0] = "FAT";
         nameByIndex[1] = "FAT";
-        for (int i = 2; i < 128; i++) {
+        for (int i = 0; i < 128; i++) {
             Label c0 = new Label(String.valueOf(i));
             Label c1 = new Label(String.valueOf(fat[i]));
             Label c2 = new Label(nameByIndex[i] == null ? "" : nameByIndex[i]);
