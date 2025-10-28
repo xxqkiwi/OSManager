@@ -44,7 +44,7 @@ public class MainLayout {
         bgView.fitHeightProperty().bind(stage.heightProperty());
 
         // 文件管理图标
-        Image appImage = new Image(getClass().getResourceAsStream("/org/example/disktest2/images/file.jpg"));
+        Image appImage = new Image(getClass().getResourceAsStream("/org/example/disktest2/images/file.png"));
         ImageView appView = new ImageView(appImage);
         appView.setFitHeight(60);
         appView.setFitWidth(60);
