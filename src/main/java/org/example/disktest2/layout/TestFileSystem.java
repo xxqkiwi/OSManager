@@ -9,12 +9,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.geometry.Pos;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
@@ -26,7 +20,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class TestFileSystem implements Initializable {
@@ -52,297 +45,277 @@ public class TestFileSystem implements Initializable {
     private TreeView<FileModel> dirTree;   // 挂实体，方便右键、重命名取数据
 
     private String getPath(FileModel fm) {
-        // 空对象直接返回空路径
-        if (fm == null) {
-            return "";
+        StringBuilder sb = new StringBuilder(fm.getName());
+        FileModel p = fm.getFather();
+        while (p != null) {
+            sb.insert(0, p.getName() + "/");
+            p = p.getFather();
         }
-
-        StringBuilder pathBuilder = new StringBuilder();
-        FileModel current = fm;
-        int maxDepth = 1000; // 最大层级限制（防止异常数据导致无限循环）
-        int depth = 0;
-
-        // 从当前节点向上遍历父目录，直到根目录（father为null）
-        while (!current.toString().equals("root")) {
-            // 超过最大层级，说明可能存在循环引用，返回错误信息
-            if (depth++ >= maxDepth) {
-                return "[ERROR] 路径层级超过上限，可能存在循环引用";
-            }
-
-            // 拼接当前节点名称（根目录直接添加，子节点前加斜杠）
-            if (pathBuilder.length() == 0) {
-                // 第一个节点（当前节点自身）直接添加名称
-                pathBuilder.append(current.getName());
-            } else {
-                // 非第一个节点（父目录）添加到前面，并加斜杠分隔
-                pathBuilder.insert(0, current.getName() + "/");
-            }
-
-            // 移动到父目录
-            current = current.getFather();
-        }
-        //还要加上root
-        pathBuilder.insert(0, current.getName() + "/");
-        return pathBuilder.toString();
+        return sb.toString();
     }
 
-    private ContextMenu itemMenu;
-
     private void addContextMenu(OSManager osManager) {
-        // 初始化右键菜单
-        itemMenu = new ContextMenu();
+        // 创建右键菜单
+        ContextMenu contextMenu = new ContextMenu();
 
-        // 1. 删除菜单项
-        MenuItem deleteItem = new MenuItem("删除");
-        deleteItem.setOnAction(e -> {
-            // 获取当前选中的节点
+        // 新建文件夹菜单项
+        MenuItem newDirItem = new MenuItem("新建文件夹");
+        newDirItem.setOnAction(event -> {
             TreeItem<FileModel> selectedItem = dirTree.getSelectionModel().getSelectedItem();
-            if (selectedItem == null) return;
-
-            FileModel targetFile = selectedItem.getValue();
-            // 禁止删除根目录
-            if (targetFile == osManager.getRoot()) {
-                new Alert(Alert.AlertType.WARNING, "根目录不能删除").showAndWait();
+            if (selectedItem == null) {
+                showAlert("提示", "请先选择一个目录");
                 return;
             }
 
-            FileModel parentDir = targetFile.getFather();
-            // 获取目标文件的完整路径
-            String targetPath = targetFile.getName();
-            // 调用OSManager的删除方法
-            int result;
-
-                result = osManager.deleteFileByPathAndParentDir(targetPath,targetFile,parentDir);
-
-
-            // 根据返回结果显示提示
-            switch (result) {
-                case 0:
-                    // 删除成功，从树中移除节点
-                    selectedItem.getParent().getChildren().remove(selectedItem);
-                    new Alert(Alert.AlertType.INFORMATION, "删除成功").showAndWait();
-                    break;
-                case 1:
-                    new Alert(Alert.AlertType.ERROR, "删除失败：文件不存在").showAndWait();
-                    break;
-                case 2:
-                    new Alert(Alert.AlertType.ERROR, "删除失败：目录不为空").showAndWait();
-                    break;
-                case 3:
-                    new Alert(Alert.AlertType.ERROR, "删除失败：磁盘为空").showAndWait();
-                    break;
-                case 4:
-                    new Alert(Alert.AlertType.ERROR, "删除失败：路径错误").showAndWait();
-                    break;
-                case 5:
-                    new Alert(Alert.AlertType.ERROR, "删除失败：禁止删除根目录").showAndWait();
-                    break;
-                default:
-                    new Alert(Alert.AlertType.ERROR, "删除失败：未知错误").showAndWait();
-            }
-
-            // 刷新磁盘和FAT表显示
-            checkDisk(osManager);
-            checkFat(osManager);
-        });
-
-        // 2. 新建文件菜单项
-        MenuItem newFileItem = new MenuItem("新建文件");
-        newFileItem.setOnAction(e -> {
-            TreeItem<FileModel> parentItem = dirTree.getSelectionModel().getSelectedItem();//目录树（dirTree）中获取当前选中的节点，并将其赋值给类型为 TreeItem<FileModel> 的变量 parentItem。
-            //System.out.println(parentItem.toString());
-            if (parentItem == null) {
-                new Alert(Alert.AlertType.WARNING, "请先选中父目录").showAndWait();
+            FileModel parentDir = selectedItem.getValue();
+            if (parentDir.getAttr() != 3) { // 确保选中的是目录
+                showAlert("错误", "只能在目录中创建文件夹");
                 return;
             }
 
-            // 验证选中的父节点是否为目录
-            FileModel parentDir = parentItem.getValue();
-            if (parentDir.getAttr() != 3) { // 假设3代表目录属性
-                new Alert(Alert.AlertType.ERROR, "只能在目录中创建文件").showAndWait();
-                return;
-            }
-
-            //System.out.println(parentItem.getValue().father);正确的
-
-            // 弹出输入文件名的对话框
-            TextInputDialog dialog = new TextInputDialog("新文件.txt");
-            dialog.setTitle("新建文件");
-            dialog.setHeaderText(null);
-            dialog.setContentText("请输入文件名（含扩展名）：");
-            Optional<String> result = dialog.showAndWait();//显示一个输入对话框（这里是TextInputDialog），并等待用户输入（阻塞当前线程，直到用户点击 “确定” 或 “取消”）。
-
-            result.ifPresent(fileName -> {
-                fileName = fileName.trim();
-                if (fileName.isEmpty()) {
-                    new Alert(Alert.AlertType.WARNING, "文件名不能为空").showAndWait();
-                    return;
-                }
-                if (!fileName.contains(".")) {
-                    new Alert(Alert.AlertType.WARNING, "文件名必须包含扩展名（如：file.txt）").showAndWait();
+            // 弹出输入对话框获取文件夹名称
+            TextInputDialog dialog = new TextInputDialog("新文件夹");
+            dialog.setTitle("新建文件夹");
+            dialog.setHeaderText("请输入文件夹名称:");
+            dialog.setContentText("名称:");
+            dialog.showAndWait().ifPresent(dirName -> {
+                if (dirName.isEmpty()) {
+                    showAlert("错误", "文件夹名称不能为空");
                     return;
                 }
 
                 // 构建完整路径
-                String parentPath = getPath(parentDir);
-                String fullPath = parentPath.endsWith("/") ? parentPath + fileName : parentPath + "/" + fileName;
+                String parentPath = buildFullPath(parentDir);
+                String fullPath = parentPath + "\\" + dirName;
+                int result = osManager.createDirectoryByPath(fullPath);
 
-                // 调用OSManager的创建文件方法
-                int createResult = osManager.createFileByPathAndParentDir(fullPath,parentDir);
-                switch (createResult) {
+                // 根据操作结果显示提示
+                switch (result) {
                     case 0:
-                        new Alert(Alert.AlertType.INFORMATION, "文件创建成功").showAndWait();
-                        // 刷新目录树
+                        showAlert("成功", "文件夹创建成功");
                         refreshTree(osManager);
+                        checkDisk(osManager);
+                        checkFat(osManager);
                         break;
                     case 1:
-                        new Alert(Alert.AlertType.ERROR, "创建失败：文件已存在").showAndWait();
+                        showAlert("错误", "文件夹已存在");
                         break;
                     case 2:
-                        new Alert(Alert.AlertType.ERROR, "创建失败：磁盘空间不足").showAndWait();
+                        showAlert("错误", "磁盘空间不足");
                         break;
                     case 3:
-                        new Alert(Alert.AlertType.ERROR, "创建失败：路径错误").showAndWait();
+                        showAlert("错误", "路径错误");
                         break;
-                    default:
-                        new Alert(Alert.AlertType.ERROR, "创建失败：未知错误").showAndWait();
                 }
-
-                // 刷新磁盘和FAT表显示
-                checkDisk(osManager);
-                checkFat(osManager);
             });
         });
 
-        // 3. 新建文件夹菜单项
-        MenuItem newDirItem = new MenuItem("新建文件夹");
-        newDirItem.setOnAction(e -> {
-            TreeItem<FileModel> parentItem = dirTree.getSelectionModel().getSelectedItem();
-            if (parentItem == null) {
-                new Alert(Alert.AlertType.WARNING, "请先选中父目录").showAndWait();
+        // 新建文件菜单项
+        MenuItem newFileItem = new MenuItem("新建文件");
+        newFileItem.setOnAction(event -> {
+            TreeItem<FileModel> selectedItem = dirTree.getSelectionModel().getSelectedItem();
+            if (selectedItem == null) {
+                showAlert("提示", "请先选择一个目录");
                 return;
             }
 
-            // 验证选中的父节点是否为目录
-            FileModel parentDir = parentItem.getValue();
-            if (parentDir.getAttr() != 3) { // 假设3代表目录属性
-                new Alert(Alert.AlertType.ERROR, "只能在目录中创建文件夹").showAndWait();
+            FileModel parentDir = selectedItem.getValue();
+            if (parentDir.getAttr() != 3) { // 确保选中的是目录
+                showAlert("错误", "只能在目录中创建文件");
                 return;
             }
 
-            // 弹出输入文件夹名的对话框
-            TextInputDialog dialog = new TextInputDialog("新文件夹");
-            dialog.setTitle("新建文件夹");
-            dialog.setHeaderText(null);
-            dialog.setContentText("请输入文件夹名：");
-            Optional<String> result = dialog.showAndWait();
-
-            result.ifPresent(dirName -> {
-                dirName = dirName.trim();
-                if (dirName.isEmpty()) {
-                    new Alert(Alert.AlertType.WARNING, "文件夹名不能为空").showAndWait();
+            // 弹出输入对话框获取文件名称
+            TextInputDialog dialog = new TextInputDialog("新文件.txt");
+            dialog.setTitle("新建文件");
+            dialog.setHeaderText("请输入文件名称:");
+            dialog.setContentText("名称:");
+            dialog.showAndWait().ifPresent(fileName -> {
+                if (fileName.isEmpty()) {
+                    showAlert("错误", "文件名称不能为空");
                     return;
                 }
 
-                // 保存当前目录，用于临时切换后恢复
-                FileModel originalDir = osManager.nowCatalog;
-                // 切换到目标父目录
-                osManager.nowCatalog = parentDir;
+                // 构建完整路径
+                String parentPath = buildFullPath(parentDir);
+                String fullPath = parentPath + "\\" + fileName;
+                int result = osManager.createFileByPath(fullPath);
 
-                // 调用OSManager的创建目录方法
-                int createResult = osManager.createDirectoryByPath(dirName);
-                switch (createResult) {
+                // 根据操作结果显示提示
+                switch (result) {
                     case 0:
-                        new Alert(Alert.AlertType.INFORMATION, "文件夹创建成功").showAndWait();
-                        // 刷新目录树
+                        showAlert("成功", "文件创建成功");
                         refreshTree(osManager);
+                        checkDisk(osManager);
+                        checkFat(osManager);
                         break;
                     case 1:
-                        new Alert(Alert.AlertType.ERROR, "创建失败：目录已存在").showAndWait();
+                        showAlert("错误", "文件已存在");
                         break;
                     case 2:
-                        new Alert(Alert.AlertType.ERROR, "创建失败：磁盘空间不足").showAndWait();
+                        showAlert("错误", "磁盘空间不足");
                         break;
-                    default:
-                        new Alert(Alert.AlertType.ERROR, "创建失败：未知错误").showAndWait();
+                    case 3:
+                        showAlert("错误", "路径错误");
+                        break;
                 }
-
-                // 恢复原始目录
-                osManager.nowCatalog = originalDir;
-                // 刷新磁盘和FAT表显示
-                checkDisk(osManager);
-                checkFat(osManager);
             });
         });
 
-        // 4.创建“重命名”菜单项
+        // 删除菜单项
+        MenuItem deleteItem = new MenuItem("删除");
+        deleteItem.setOnAction(event -> {
+            // 1. 获取选中节点
+            TreeItem<FileModel> selectedItem = dirTree.getSelectionModel().getSelectedItem();
+            if (selectedItem == null) {
+                showAlert("提示", "请选择要删除的项目");
+                return;
+            }
+            FileModel target = selectedItem.getValue();
+            String targetName = target.getName();
+            FileModel parent = target.getFather();
+
+            // 2. 构建准确路径（与OSManager解析逻辑一致）
+            String fullPath = buildFullPath(target);
+
+            // 3. 确认删除
+            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmAlert.setHeaderText("确定删除「" + targetName + "」吗？");
+            confirmAlert.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    try {
+                        // 5. 根据类型调用对应删除方法（避免调用错误的底层方法）
+                        int res = (target.getAttr() == 3)
+                                ? osManager.removeDirectoryByPath(fullPath)
+                                : osManager.deleteFileByPathAndFile(target,fullPath);
+
+                        if (res == 0) {
+                            showAlert("成功", "删除成功");
+                            checkDisk(osManager);
+                            checkFat(osManager);
+                            refreshTree(osManager);//目录树刷新
+                        } else {
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setTitle("删除失败");
+                            alert.setHeaderText("目录不为空，请检查。");
+                            alert.showAndWait();
+                        }
+                    } catch (Exception e) {
+                        showAlert("错误", "删除失败：" + e.getMessage());
+                    }
+                }
+            });
+        });
+
+        // 重命名菜单项
         MenuItem renameItem = new MenuItem("重命名");
         renameItem.setOnAction(event -> {
-                    // 获取选中的节点
-                    TreeItem<FileModel> selectedItem = dirTree.getSelectionModel().getSelectedItem();
-                    if (selectedItem == null) {
-                        return; // 未选中节点，不处理
-                    }
-                    FileModel fileModel = selectedItem.getValue();
-                    if (fileModel == null) {
-                        return;
-                    }
+            TreeItem<FileModel> selectedItem = dirTree.getSelectionModel().getSelectedItem();
+            if (selectedItem == null) {
+                showAlert("提示", "请先选择要重命名的项目");
+                return;
+            }
 
-                    // 1. 创建输入对话框，默认显示当前名称
-                    TextInputDialog dialog = new TextInputDialog(fileModel.getName());
-                    dialog.setTitle("重命名");
-                    dialog.setHeaderText("请输入新名称:");
-                    dialog.setContentText("名称:");
+            FileModel target = selectedItem.getValue();
+            FileModel parent = target.getFather();
+            String fullPath = buildFullPath(target);
+            osManager.nowCatalog = parent;
+            if (parent == null) {
+                showAlert("错误", "根目录不能重命名");
+                return;
+            }
 
-                    // 2. 显示对话框并处理结果
-                    Optional<String> result = dialog.showAndWait();
-                    result.ifPresent(newName -> {
-                        // 3. 校验新名称合法性
-                        //if (validateNewName(newName.trim(), fileModel)) {
-                            // 4. 合法则更新名称
-                            updateName(fileModel, selectedItem, newName.trim());
-                        //}
-                    });
+            // 弹出输入对话框获取新名称
+            TextInputDialog dialog = new TextInputDialog(target.getName());
+            dialog.setTitle("重命名");
+            dialog.setHeaderText("请输入新名称:");
+            dialog.setContentText("名称:");
+            dialog.showAndWait().ifPresent(newName -> {
+                if (newName.isEmpty()) {
+                    showAlert("错误", "名称不能为空");
+                    return;
+                }
+
+                if (parent.subMap.containsKey(newName)) {
+                    showAlert("错误", "名称已存在");
+                    return;
+                }
+
+                // 执行重命名操作
+                String oldName = target.getName();
+                osManager.reName(target,fullPath,oldName, newName);
+                showAlert("成功", "重命名成功");
+                checkDisk(osManager);
+                checkFat(osManager);
+                refreshTree(osManager);//目录树刷新
+            });
         });
-
 
         // 将菜单项添加到菜单
-        itemMenu.getItems().addAll(deleteItem, newFileItem, newDirItem,renameItem);
+        contextMenu.getItems().addAll(newDirItem, newFileItem, new SeparatorMenuItem(), deleteItem, renameItem);
 
-        dirTree.setCellFactory(param -> {
-            TreeCell<FileModel> cell = new TextFieldTreeCell<>(); // 使用默认的文本单元格
+        // 设置树视图的右键菜单
+        dirTree.setContextMenu(contextMenu);
 
-            // 为单元格绑定右键点击事件
-            cell.setOnMouseClicked(event -> {
-                if (event.getButton() == MouseButton.SECONDARY && !cell.isEmpty()) {
-                    // 选中当前单元格对应的TreeItem
-                    dirTree.getSelectionModel().select(cell.getTreeItem());
-                    // 显示菜单
-                    itemMenu.show(cell, event.getScreenX(), event.getScreenY());
+        //
+        dirTree.setOnMouseClicked(event -> {
+            if (event.getButton().equals(javafx.scene.input.MouseButton.SECONDARY)) {
+                TreeItem<FileModel> selectedItem = dirTree.getSelectionModel().getSelectedItem();
+                if (selectedItem != null) {
+                    contextMenu.show(dirTree, event.getScreenX(), event.getScreenY());
                 } else {
-                    // 点击空白处或左键点击时隐藏菜单
-                    itemMenu.hide();
+                    contextMenu.hide(); // 未选中项时隐藏
                 }
-            });
-
-            return cell;
+            }
         });
     }
 
-    private void updateName(FileModel fileModel, TreeItem<FileModel> treeItem, String newName) {
-        String oldName = fileModel.getName();
-        // 更新FileModel自身名称
-        fileModel.setName(newName);
-        // 更新父节点subMap的key（保持映射一致）
-        FileModel parent = fileModel.father;
-        if (parent != null) {
-            parent.subMap.remove(oldName);
-            parent.subMap.put(newName, fileModel);
+    private String buildFullPath(FileModel dir) {
+        if (dir == null) {
+            return "";
         }
-        // 刷新树形节点显示
-        treeItem.setValue(fileModel); // 触发UI更新
+
+        StringBuilder path = new StringBuilder();
+        FileModel current = dir;
+
+        while (current != null && current != osManager.getRoot()) { // 注意这里需要获取OSManager实例
+            if (path.length() > 0) {
+                path.insert(0, "\\");
+            }
+            path.insert(0, current.getName());
+            current = current.getFather();
+        }
+
+        if (path.length() > 0) {
+            path.insert(0, "\\");
+        }
+        path.insert(0, "root");
+
+        return path.toString();
     }
 
+    // 在TestFileSystem类中添加成员变量
+    private OSManager osManager;
+
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        this.osManager = new OSManager(); // 初始化并保存实例
+        menu(osManager);
+        initDisk();
+        checkDisk(osManager);
+        initFat(osManager);
+        checkFat(osManager);
+        initializeTree(osManager);
+    }
+
+    // 辅助方法：显示提示对话框
+    private void showAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
 
     /** 只在 UI 初始化时调用一次 */
     private void initializeTree(OSManager osManager) {
@@ -367,16 +340,16 @@ public class TestFileSystem implements Initializable {
         dirTree.setRoot(createNode(osManager.getRoot()));
     }
 
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
-        OSManager manager = new OSManager();
-        menu(manager);
-        initDisk();
-        checkDisk(manager);
-        initFat(manager);
-        checkFat(manager);
-        initializeTree(manager);
-    }
+//    @Override
+//    public void initialize(URL url, ResourceBundle resourceBundle) {
+//        OSManager manager = new OSManager();
+//        menu(manager);
+//        initDisk();
+//        checkDisk(manager);
+//        initFat(manager);
+//        checkFat(manager);
+//        initializeTree(manager);
+//    }
 
     public void menu(OSManager manager) {
         /*Scanner sc = new Scanner(System.in);
@@ -704,7 +677,7 @@ public class TestFileSystem implements Initializable {
         FatPane.getChildren().clear();
         nameByIndex[0] = "FAT";
         nameByIndex[1] = "FAT";
-        for (int i = 2; i < 128; i++) {
+        for (int i = 0; i < 128; i++) {
             Label c0 = new Label(String.valueOf(i));
             Label c1 = new Label(String.valueOf(fat[i]));
             Label c2 = new Label(nameByIndex[i] == null ? "" : nameByIndex[i]);
