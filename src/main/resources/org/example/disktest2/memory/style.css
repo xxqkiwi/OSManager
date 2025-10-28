@@ -113,3 +113,38 @@
     -fx-padding: 10 40 10 40;   /* 上下10 左右40 */
     -fx-alignment: center;      /* 整体居中 */
 }
+/* 条形图样式 */
+.bar-chart {
+    -fx-padding: 10;
+    -fx-background-color: transparent;
+}
+
+.bar-chart .chart-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333;
+}
+
+.bar-chart .axis-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #666;
+}
+
+.bar-chart .chart-legend {
+    -fx-background-color: transparent;
+    -fx-padding: 10 0;
+}
+
+/* 磁盘图表颜色 */
+.bar-chart .series0 .bar {
+    -fx-bar-fill: #ff6b6b; /* 已使用 - 红色系 */
+}
+
+.bar-chart .series1 .bar {
+    -fx-bar-fill: #4ecdc4; /* 空闲 - 蓝绿色系 */
+}
+
+/* 设备图表颜色 */
+.bar-chart:device .series0 .bar {
+    -fx-bar-fill: #ffd166; /* 设备已占用 - 黄色系 */
+}

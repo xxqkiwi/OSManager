@@ -14,7 +14,11 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.example.disktest2.pd.domain.model.PCB;
+import org.example.disktest2.Device.DeviceManager;
+import org.example.disktest2.Controller.OSManager;
 
+import java.util.List;
+import java.util.Map;
 
 /**
  * HelloController 类是一个FXML控制器，用于处理内存管理系统的用户界面交互。
@@ -23,11 +27,10 @@ import org.example.disktest2.pd.domain.model.PCB;
 public class MemoryController {
 
     @FXML private ProgressBar usageBar;    // 内存使用进度条
-    @FXML private Label       usageText;    // 内存使用率文本标签
+    @FXML private Label usageText;    // 内存使用率文本标签
     @FXML private Canvas canvas;           // 内存可视化画布
-//    @FXML private TextField nameField, sizeField;  // 进程名称和大小输入框
-//    @FXML private TextArea log;            // 日志输出区域
     @FXML private VBox memoryContainer; // 需要在FXML中添加这个容器
+
     private final MemoryManager mm = MemoryManager.get();
     private Label sizeInfoLabel;
     private Label colorDescLabel; // 用于显示颜色说明的标签
@@ -47,7 +50,10 @@ public class MemoryController {
         VBox infoContainer = new VBox(10);
         infoContainer.getChildren().addAll(sizeInfoLabel, legendBox);
 
-        // 获取 canvas 的直接父容器（假设是 VBox，根据实际布局调整）
+        canvas.setWidth(800);  // 设置固定宽度
+        canvas.setHeight(100); // 设置固定高度
+
+        // 获取 canvas 的直接父容器
         Pane canvasParent = (Pane) canvas.getParent();  // 使用通用的 Pane 类型
 
         // 获取 canvasParent 的父容器（假设是 VBox）
@@ -62,8 +68,8 @@ public class MemoryController {
         }
 
         // 让 Canvas 尺寸跟随父容器变化
-        canvas.widthProperty().bind(canvasParent.widthProperty().subtract(20));
-        canvas.heightProperty().bind(canvasParent.heightProperty().subtract(20));
+        //canvas.widthProperty().bind(canvasParent.widthProperty().subtract(20));
+        //canvas.heightProperty().bind(canvasParent.heightProperty().subtract(20));
 
         // 尺寸变化即重绘
         canvas.widthProperty().addListener((obs, old, neo) -> draw());
