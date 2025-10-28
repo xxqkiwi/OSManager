@@ -185,7 +185,7 @@ public class MainLayout {
     public void openFileManage() throws IOException {
         System.out.println("open fileManage");
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("diskPane.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1000, 600);
+        Scene scene = new Scene(fxmlLoader.load(), 1100, 700);
         javafx.stage.Stage fileManageStage = new javafx.stage.Stage();
         fileManageStage.setTitle("文件管理");
         fileManageStage.setScene(scene);

@@ -5,26 +5,22 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.geometry.Pos;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
-import javafx.util.StringConverter;
-import org.example.disktest2.Controller.FileModel;
+import org.example.disktest2.entity.FileModel;
 import org.example.disktest2.Controller.OSManager;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class TestFileSystem implements Initializable {
     @FXML
@@ -179,11 +175,12 @@ public class TestFileSystem implements Initializable {
                                     alert.setTitle("删除失败");
                                     alert.setHeaderText("文件不存在，请检查。");
                                     alert.showAndWait();
-                                } else if (res == 2) {
-                                    alert.setTitle("删除失败");
-                                    alert.setHeaderText("该目录不为空，请检查。");
-                                    alert.showAndWait();
                                 } else if(res == 3) {
+                                    alert.setTitle("删除失败");
+                                    alert.setHeaderText("该名称不是文件而是目录，请检查。");
+                                    alert.showAndWait();
+                                }
+                                else if(res == 3) {
                                     alert.setTitle("删除失败");
                                     alert.setHeaderText("当前磁盘为空，请检查。");
                                     alert.showAndWait();
@@ -235,6 +232,10 @@ public class TestFileSystem implements Initializable {
                                     alert.setTitle("拷贝失败");
                                     alert.setHeaderText("目标文件已存在，请检查。");
                                     alert.showAndWait();
+                                } else if(res == 5) {
+                                    alert.setTitle("拷贝失败");
+                                    alert.setHeaderText("不能复制目录，只能复制文件。");
+                                    alert.showAndWait();
                                 }
                             }
                             break;
@@ -262,7 +263,11 @@ public class TestFileSystem implements Initializable {
                             if (strs.length < 2) {
                                 alert.showAndWait();
                             } else {
-                                res = manager.removeDirectoryByPath(strs[1]);
+                                try {
+                                    res = manager.removeDirectoryByPath(strs[1]);
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
                                 if(res == 1) {
                                     alert.setTitle("删除失败");
                                     alert.setHeaderText("目录不存在，请检查。");
@@ -318,132 +323,136 @@ public class TestFileSystem implements Initializable {
     }
 
     public void initDisk() {
-        diskPane.setHgap(12);
-        diskPane.setVgap(12);
-        for(int i = 0; i <8; i++) {
-            for(int j = 0; j < 16; j++) {
-                //System.out.println("blockPane");
-                Rectangle rectangle = new Rectangle(16, 16);
-                rectangle.setAccessibleText("i*j");
-                if(i == 0 && j <= 1) {
-                    rectangle.setFill(Color.RED); //前两块始终被占用
-                } else {
-                    rectangle.setFill(Color.GREEN);
-                }
+        diskPane.getColumnConstraints().clear();
+        diskPane.getRowConstraints().clear();
+        diskPane.setHgap(8);
+        diskPane.setVgap(10);
 
-                Text text = new Text((i * 8 + j) + ""); // 计算序号
-                text.setStyle("-fx-font-size: 12px; -fx-text-fill: white;");
+        for (int c = 0; c < 16; c++) {
+            ColumnConstraints cc = new ColumnConstraints();
+            cc.setPercentWidth(100.0 / 16.0);
+            diskPane.getColumnConstraints().add(cc);
+        }
+        for (int r = 0; r < 8; r++) {
+            RowConstraints rc = new RowConstraints();
+            rc.setPercentHeight(100.0 / 8.0);
+            diskPane.getRowConstraints().add(rc);
+        }
 
-                diskPane.add(rectangle, j, i);
-                diskPane.add(text, j, i);
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 16; col++) {
+                int blockIndex = row * 16 + col;
+                StackPane cell = new StackPane();
+                Label label = new Label(String.valueOf(blockIndex));
+                label.setStyle("-fx-font-size: 12px; -fx-text-fill: #333333;");
+                StackPane.setAlignment(label, Pos.CENTER);
+                cell.getChildren().add(label);
+                cell.setStyle("-fx-background-color: " + (blockIndex <= 1 ? "#ffd6d6" : "#d6ffd6") + "; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-background-radius: 4; -fx-border-radius: 4;");
+                cell.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                diskPane.add(cell, col, row);
             }
         }
     }
 
-    //把已被占用的磁盘块变为红色
+    //把已被占用的磁盘块变为淡红色，空闲为淡绿色
     public void checkDisk(OSManager osManager) {
         int[] fat = osManager.getFat();
-        for(int i = 2; i < 128 ; i++) {
-            Rectangle rectangle = getRectangle(diskPane, i/16, i%16);
-            if(fat[i] != 0) {
-                rectangle.setFill(Color.RED);
-            } else {
-                rectangle.setFill(Color.GREEN);
-            }
+        for (int i = 0; i < 128; i++) {
+            int row = i / 16;
+            int col = i % 16;
+            StackPane cell = getCell(diskPane, row, col);
+            if (cell == null) continue;
+            boolean used = (i <= 1) || fat[i] != 0;
+            String color = used ? "#ffd6d6" : "#d6ffd6";
+            cell.setStyle("-fx-background-color: " + color + "; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-background-radius: 4; -fx-border-radius: 4;");
         }
     }
 
-    public Rectangle getRectangle(GridPane gridPane, int row, int col) {
-        // 遍历GridPane中的所有子节点
+    public StackPane getCell(GridPane gridPane, int row, int col) {
         for (Node node : gridPane.getChildren()) {
-            // 获取节点在GridPane中的位置
             Integer rowIndex = GridPane.getRowIndex(node);
             Integer colIndex = GridPane.getColumnIndex(node);
-
-            // 检查位置是否匹配
             if (rowIndex != null && colIndex != null && rowIndex.equals(row) && colIndex.equals(col)) {
-                // 如果匹配，检查节点是否为Rectangle
-                if (node instanceof Rectangle) {
-                    return (Rectangle) node;
+                if (node instanceof StackPane) {
+                    return (StackPane) node;
                 }
             }
         }
-        return null; // 如果没有找到匹配的Rectangle，返回null
+        return null;
     }
 
     //初始化FAT表
     public void initFat(OSManager manager) {
-        FatTitlePane.add(new Text("index"),0,0);
-        FatTitlePane.add(new Text("next"),1,0);
-        FatTitlePane.add(new Text("name"),2,0);
-
-        ScrollPane scrollPane = new ScrollPane(FatPane);
-        scrollPane.setFitToWidth(true); // 使 GridPane 的宽度适应 ScrollPane
-        scrollPane.setFitToHeight(true);
-        FatPane.setVgap(3);
-        FatPane.setHgap(8);
-
-        int[] fat = manager.getFat();
-        for (int i = 0; i < 128; i++) {
-            FatPane.add(new Text(""+i),0,i);
-            FatPane.add(new Text(""+fat[i]),1,i);
-            //System.out.println("Adding index " + i + " with value " + fat[i]);
+        FatTitlePane.getChildren().clear();
+        FatTitlePane.getColumnConstraints().clear();
+        for (int c = 0; c < 3; c++) {
+            ColumnConstraints cc = new ColumnConstraints();
+            cc.setPercentWidth(100.0 / 3.0);
+            FatTitlePane.getColumnConstraints().add(cc);
         }
+        Label h1 = new Label("index");
+        Label h2 = new Label("next");
+        Label h3 = new Label("name");
+        for (Label h : new Label[]{h1,h2,h3}) {
+            h.setStyle("-fx-font-weight: bold; -fx-padding: 6 8; -fx-text-fill: #333333;");
+            h.setMaxWidth(Double.MAX_VALUE);
+            h.setAlignment(Pos.CENTER_LEFT);
+        }
+        FatTitlePane.add(h1,0,0);
+        FatTitlePane.add(h2,1,0);
+        FatTitlePane.add(h3,2,0);
+
+        FatPane.getColumnConstraints().clear();
+        for (int c = 0; c < 3; c++) {
+            ColumnConstraints cc = new ColumnConstraints();
+            cc.setPercentWidth(100.0 / 3.0);
+            FatPane.getColumnConstraints().add(cc);
+        }
+        
+        FatPane.setVgap(2);
+        FatPane.setHgap(0); // Remove horizontal gap to match header alignment
+        renderFat(manager);
     }
 
     //FAT表状态改变
     public void checkFat(OSManager manager) {
-        Map<String, FileModel> totalFiles = manager.getTotalFiles();
+        renderFat(manager);
+    }
+
+    private void renderFat(OSManager manager) {
+        List<FileModel> totalFiles = manager.getTotalFiles();
         int[] fat = manager.getFat();
 
-        // 先清空FAT显示区域
-        FatPane.getChildren().clear();
-
-        // 重新初始化FAT表显示
-        for (int i = 0; i < 128; i++) {
-            FatPane.add(new Text(""+i),0,i);
-            FatPane.add(new Text(""+fat[i]),1,i);
-        }
-
-        // 为每个文件添加名称显示
-        for(FileModel fileModel : totalFiles.values()) {
+        String[] nameByIndex = new String[128];
+        for (FileModel fileModel : totalFiles) {
             int i = fileModel.getStartNum();
-            int count = 0; // 防止死循环的计数器
-            int maxIterations = 128; // 最大迭代次数
-
-            while(fat[i] != -1 && count < maxIterations) {
-                // 更新FAT表显示
-                Node node = FatPane.getChildren().get(i * 3 + 1); // 获取next列
-                if(node != null) {
-                    FatPane.getChildren().remove(node);
-                }
-                FatPane.add(new Text(""+fat[i]),1,i);
-
-                // 添加文件名显示
-                Node nameNode = FatPane.getChildren().get(i * 3 + 2); // 获取name列
-                if(nameNode != null) {
-                    FatPane.getChildren().remove(nameNode);
-                }
-                FatPane.add(new Text(""+fileModel.getName()),2,i);
-
+            int count = 0;
+            int maxIterations = 128;
+            while (i >= 0 && i < 128 && count < maxIterations) {
+                // Use the file name from FileModel
+                nameByIndex[i] = fileModel.getName();
+                if (fat[i] == -1) break;
                 i = fat[i];
                 count++;
             }
+        }
 
-            // 处理最后一个节点
-            if(count < maxIterations) {
-                Node node = FatPane.getChildren().get(i * 3 + 1);
-                if(node != null) {
-                    FatPane.getChildren().remove(node);
-                }
-                FatPane.add(new Text(""+fat[i]),1,i);
-
-                Node nameNode = FatPane.getChildren().get(i * 3 + 2);
-                if(nameNode != null) {
-                    FatPane.getChildren().remove(nameNode);
-                }
-                FatPane.add(new Text(""+fileModel.getName()),2,i);
+        FatPane.getChildren().clear();
+        nameByIndex[0] = "FAT";
+        nameByIndex[1] = "FAT";
+        for (int i = 0; i < 128; i++) {
+            Label c0 = new Label(String.valueOf(i));
+            Label c1 = new Label(String.valueOf(fat[i]));
+            Label c2 = new Label(nameByIndex[i] == null ? "" : nameByIndex[i]);
+            for (Label l : new Label[]{c0,c1,c2}) {
+                l.setStyle("-fx-padding: 6 8; -fx-text-fill: #333333; -fx-background-color: white; -fx-border-color: #eeeeee; -fx-border-width: 0 0 1 0;");
+                l.setMaxWidth(Double.MAX_VALUE);
+                l.setAlignment(Pos.CENTER_LEFT);
+                l.setPrefWidth(Region.USE_COMPUTED_SIZE);
             }
+            FatPane.add(c0, 0, i);
+            FatPane.add(c1, 1, i);
+            FatPane.add(c2, 2, i);
         }
     }
 
