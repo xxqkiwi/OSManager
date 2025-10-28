@@ -261,7 +261,9 @@ public class OSManager {
 
     public int deleteFileByPathAndFile(FileModel fm,String path) {
         String fileName = getFileName(path) ;
-        fileName=fileName+"."+ fm.getType();
+        if(!fileName.contains(".")){
+            fileName=fileName+"."+ fm.getType();
+        }
         String parentPath = getParentPath(path);
 
         if (fileName.isEmpty()) {
