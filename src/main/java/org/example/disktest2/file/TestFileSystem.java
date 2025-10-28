@@ -1,4 +1,4 @@
-package org.example.disktest2.layout;
+package org.example.disktest2.file;
 
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -9,17 +9,13 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.geometry.Pos;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Text;
-import org.example.disktest2.entity.FileModel;
-import org.example.disktest2.Controller.OSManager;
+import org.example.disktest2.file.entity.FileModel;
+import org.example.disktest2.file.Controller.OSManager;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 public class TestFileSystem implements Initializable {

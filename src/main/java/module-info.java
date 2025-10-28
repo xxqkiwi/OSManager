@@ -12,10 +12,12 @@ module org.example.disktest2 {
     /*exports org.example.disktest2.Application;
     opens org.example.image.Application to javafx.fxml;*/
 
-    exports org.example.disktest2.Controller;
-    opens org.example.disktest2.Controller to javafx.fxml;
+    exports org.example.disktest2.file.Controller;
+    opens org.example.disktest2.file.Controller to javafx.fxml;
     exports org.example.disktest2.layout;
     opens org.example.disktest2.layout to javafx.fxml;
-    exports org.example.disktest2.entity;
-    opens org.example.disktest2.entity to javafx.fxml;
+    exports org.example.disktest2.file.entity;
+    opens org.example.disktest2.file.entity to javafx.fxml;
+    exports org.example.disktest2.file;
+    opens org.example.disktest2.file to javafx.fxml;
 }

@@ -1,6 +1,6 @@
-package org.example.disktest2.Controller;
+package org.example.disktest2.file.Controller;
 
-import org.example.disktest2.entity.FileModel;
+import org.example.disktest2.file.entity.FileModel;
 
 import java.awt.*;
 import java.io.File;
@@ -8,9 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class OSManager {
     private List<FileModel> totalFiles = new ArrayList<FileModel>();
