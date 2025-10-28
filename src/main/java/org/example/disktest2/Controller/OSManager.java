@@ -236,12 +236,12 @@ public class OSManager {
         }
 
         FileModel file = parentDir.subMap.get(fileName);
-        if(file.getAttr() == 3) return 2;//不是文件是目录
 
         if (file == null) {
             return 1; // 文件不存在
         }
 
+        if(file.getAttr() == 3) return 2;//不是文件是目录
 
         if (fat[0] >= 126) {
             return 3; // 磁盘为空

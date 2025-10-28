@@ -165,7 +165,7 @@ public class TestFileSystem implements Initializable {
         // 删除菜单项
         MenuItem deleteItem = new MenuItem("删除");
         deleteItem.setOnAction(event -> {
-            // 1. 获取选中节点
+            // 获取选中节点
             TreeItem<FileModel> selectedItem = dirTree.getSelectionModel().getSelectedItem();
             if (selectedItem == null) {
                 showAlert("提示", "请选择要删除的项目");
@@ -175,16 +175,16 @@ public class TestFileSystem implements Initializable {
             String targetName = target.getName();
             FileModel parent = target.getFather();
 
-            // 2. 构建准确路径（与OSManager解析逻辑一致）
+            // 构建准确路径（
             String fullPath = buildFullPath(target);
 
-            // 3. 确认删除
+            // 确认删除
             Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
             confirmAlert.setHeaderText("确定删除「" + targetName + "」吗？");
             confirmAlert.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.OK) {
                     try {
-                        // 5. 根据类型调用对应删除方法（避免调用错误的底层方法）
+                        //根据类型调用对应删除方法（避免调用错误的底层方法）
                         int res = (target.getAttr() == 3)
                                 ? osManager.removeDirectoryByPath(fullPath)
                                 : osManager.deleteFileByPathAndFile(target,fullPath);
