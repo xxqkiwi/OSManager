@@ -23,7 +23,7 @@ public class OSManager {
 
     //根目录
     private FileModel root = new FileModel("root",2);
-    private FileModel nowCatalog = root;
+    public FileModel nowCatalog = root;
 
     public FileModel getRoot(){
         return root;
@@ -261,6 +261,46 @@ public class OSManager {
         return 0;
     }
 
+    public int deleteFileByPathAndFile(FileModel fm,String path) {
+        String fileName = getFileName(path) ;
+        fileName=fileName+"."+ fm.getType();
+        String parentPath = getParentPath(path);
+
+        if (fileName.isEmpty()) {
+            return 4; // 路径错误
+        }
+
+        FileModel parentDir = navigateToPath(parentPath);
+        if (parentDir == null) {
+            return 4; // 路径错误
+        }
+
+        FileModel file = parentDir.subMap.get(fileName);
+        if(file.getAttr() == 3) return 2;//不是文件是目录
+
+        if (file == null) {
+            return 1; // 文件不存在
+        }
+
+
+        if (fat[0] >= 126) {
+            return 3; // 磁盘为空
+        }
+
+        // 删除文件
+        delFat(file.getStartNum());
+        parentDir.subMap.remove(fileName);
+        totalFiles.remove(file);
+        fat[0] += file.getSize();
+        FileOutputStream fos = file.getFos();
+        File f = new File(path+"."+ fm.getType());
+        f.delete();
+
+        System.out.println("删除文件成功：" + path);
+        showFile();
+        return 0;
+    }
+
     //  展示文件
     public void showFile() {
         System.out.println("***************** < " + nowCatalog.getName() + " > *****************");
@@ -314,7 +354,11 @@ public class OSManager {
     }
 
     //重命名文件
-    public void reName(String name, String newName) {
+    public void reName(FileModel fm,String fullName,String name, String newName) {
+        if(fm.getAttr()==2){
+            name=name+"."+fm.getType();
+            //newName=newName+"."+fm.getType();
+        }
         FileModel value = nowCatalog.subMap.get(name);
         if(value == null) {
             System.out.println("当前文件不存在，请检查名字");
@@ -329,7 +373,45 @@ public class OSManager {
                 System.out.println("新名字已存在");
             }
         }
+        String dir = getParentPath(fullName);
+        File src = new File(dir, name);
+        File dst = new File(dir, newName);
+
+        if (!src.exists()) {
+            System.out.println("源文件不存在");
+            return;
+        }
+
+        boolean success = src.renameTo(dst);
+        System.out.println(success ? "改名成功" : "改名失败");
         showFile();
+    }
+
+    public int reNameByPath(String fullPath, String newName) {
+        if (fullPath == null || fullPath.isEmpty() || newName == null || newName.isEmpty())
+            return 3;
+
+        // 1. 定位到父目录
+        String parentPath = getParentPath(fullPath);          // root//xxx
+        String oldName    = getFileName(fullPath);            // oldName
+        FileModel parent  = navigateToPath(parentPath);
+        if (parent == null) return 3;
+
+        // 2. 检查旧节点是否存在
+        FileModel target = parent.subMap.get(oldName);
+        if (target == null) return 1;
+
+        // 3. 检查新名称是否冲突
+        if (parent.subMap.containsKey(newName)) return 2;
+
+        // 4. 原子替换
+        parent.subMap.remove(oldName);
+        target.setName(newName);
+        parent.subMap.put(newName, target);
+
+        System.out.println("重命名成功：" + fullPath + " → " + newName);
+        showFile();
+        return 0;
     }
 
     //打开文件
@@ -560,10 +642,10 @@ public class OSManager {
         if (dir == null) {
             return "";
         }
-        
+
         StringBuilder path = new StringBuilder();
         FileModel current = dir;
-        
+
         while (current != null && current != root) {
             if (path.length() > 0) {
                 path.insert(0, "\\");
@@ -571,12 +653,12 @@ public class OSManager {
             path.insert(0, current.getName());
             current = current.getFather();
         }
-        
+
         if (path.length() > 0) {
             path.insert(0, "\\");
         }
         path.insert(0, "root");
-        
+
         return path.toString();
     }
 
@@ -647,7 +729,7 @@ public class OSManager {
         // 确定目标目录和文件名
         FileModel targetParentDir;
         String targetFileName;
-        
+
         // 检查目标路径是否为目录
         FileModel targetDir = navigateToPath(targetPath);
         if (targetDir != null && targetDir.getAttr() == 3) {
@@ -658,11 +740,11 @@ public class OSManager {
             // 目标路径是文件路径，解析父目录和文件名
             targetFileName = getFileName(targetPath);
             String targetParentPath = getParentPath(targetPath);
-            
+
             if (targetFileName.isEmpty()) {
                 return 2; // 目标路径错误
             }
-            
+
             targetParentDir = navigateToPath(targetParentPath);
             if (targetParentDir == null) {
                 return 2; // 目标路径错误
@@ -692,7 +774,7 @@ public class OSManager {
         // 构建完整的目标路径用于文件系统操作
         String fullTargetPath = buildFullPath(targetParentDir) + "\\" + targetFileName;
         newFile.setFos(fullTargetPath);
-        
+
         System.out.println("源文件起始块: " + sourceFile.getStartNum());
         System.out.println("目标文件起始块: " + startNum);
         System.out.println("复制文件成功：" + sourcePath + " -> " + fullTargetPath);
