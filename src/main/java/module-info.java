@@ -2,7 +2,11 @@ module org.example.disktest2 {
     requires javafx.controls;
     requires javafx.fxml;
     requires jdk.compiler;
+    requires javafx.base;
+    requires javafx.graphics;
     requires java.desktop;
+    requires javafx.web;
+    requires javafx.media;
 
 
     opens org.example.disktest2 to javafx.fxml;
@@ -15,4 +19,6 @@ module org.example.disktest2 {
     opens org.example.disktest2.layout to javafx.fxml;
     exports org.example.disktest2.entity;
     opens org.example.disktest2.entity to javafx.fxml;
+    opens org.example.disktest2.memory to javafx.fxml;
+    exports org.example.disktest2.pd.view to javafx.graphics;
 }

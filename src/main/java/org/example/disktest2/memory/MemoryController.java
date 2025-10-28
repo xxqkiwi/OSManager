@@ -13,9 +13,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import org.example.disktest2.pd.domain.model.PCB;
-import org.example.disktest2.Device.DeviceManager;
-import org.example.disktest2.Controller.OSManager;
 
 import java.util.List;
 import java.util.Map;

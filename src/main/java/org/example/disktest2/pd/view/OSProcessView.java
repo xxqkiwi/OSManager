@@ -428,12 +428,12 @@ public class OSProcessView extends Application {
             new ExeFile("p2.exe", Arrays.asList("x=5", "x++", "!B 3", "x--", "x=9","end")),
             new ExeFile("p3.exe", Arrays.asList("x=0", "x++", "!C 1", "x--", "end")),
             new ExeFile("p4.exe", Arrays.asList("x=3", "x++", "!A 2", "x--", "end")),
-            new ExeFile("p5.exe", Arrays.asList("x=7", "x++", "!B 1", "x--","x--","x--", "end")),
-            new ExeFile("p6.exe", Arrays.asList("x=5", "x++", "!C 2", "x--", "end")),
+            new ExeFile("p5.exe", Arrays.asList("x=7", "x++", "!B 1", "x--", "x--","x--", "end")),
+            new ExeFile("p6.exe", Arrays.asList("x=5", "x++", "!C 2", "x--", "x--", "end")),
             new ExeFile("p7.exe", Arrays.asList("x=6", "x++", "!A 2", "x--", "x++","x++","x++","end")),
             new ExeFile("p8.exe", Arrays.asList("x=4", "x++", "!B 3", "x--", "end")),
-            new ExeFile("p9.exe", Arrays.asList("x=8", "x++", "!C 3", "x--", "end")),
-            new ExeFile("p10.exe",Arrays.asList("x=9", "x++", "!A 1", "x--", "end"))
+            new ExeFile("p9.exe", Arrays.asList("x=8", "x++", "!C 3", "x--", "x++", "x--", "end")),
+            new ExeFile("p10.exe",Arrays.asList("x=9", "x++", "!A 1", "x--", "x--", "end"))
     );
 
     // 内部类：封装可执行文件信息
