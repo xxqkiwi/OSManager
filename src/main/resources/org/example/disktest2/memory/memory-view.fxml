@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.canvas.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="CENTER" spacing="15" stylesheets="@style.css"
+      xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.disktest2.memory.MemoryController">
+
+    <!-- ① 内存条区域：用 VBox 做父节点，和你的 initialize() 强转对应 -->
+    <VBox id="memoryPane" maxWidth="Infinity" VBox.vgrow="ALWAYS">
+        <Canvas fx:id="canvas" width="640" height="60" />
+    </VBox>
+
+    <!-- ④ 内存使用率条 -->
+    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="usage-bar">
+        <Label text="内存使用情况：" styleClass="usage-label"/>
+        <ProgressBar fx:id="usageBar" prefWidth="200"/>
+        <Label fx:id="usageText" styleClass="usage-percent"/>
+    </HBox>
+
+    <!-- ② 输入区 -->
+    <!--<HBox alignment="CENTER" spacing="10">
+        <TextField fx:id="nameField" promptText="进程名（如 bb.e）" prefWidth="140" styleClass="input"/>
+        <TextField fx:id="sizeField" promptText="大小/字节" prefWidth="90" styleClass="input"/>
+        <Button text="载入" onAction="#onLoad" styleClass="button-primary"/>
+        <Button text="卸载" onAction="#onUnload" styleClass="button-primary"/>
+    </HBox>-->
+
+    <!-- ③ 日志区 -->
+    <!--<TextArea fx:id="log" prefRowCount="4" maxHeight="120" styleClass="log-area" VBox.vgrow="NEVER"/>-->
+</VBox>

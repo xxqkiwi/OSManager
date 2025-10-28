@@ -3,12 +3,15 @@ module org.example.disktest2 {
     requires javafx.fxml;
     requires jdk.compiler;
     requires java.desktop;
-
-
+    requires javafx.web;
+    exports org.example.disktest2.pd.view ;
     opens org.example.disktest2 to javafx.fxml;
     exports org.example.disktest2;
+    opens org.example.disktest2.memory to javafx.fxml;
+    exports org.example.disktest2.memory;
     /*exports org.example.disktest2.Application;
     opens org.example.image.Application to javafx.fxml;*/
+
     exports org.example.disktest2.Controller;
     opens org.example.disktest2.Controller to javafx.fxml;
     exports org.example.disktest2.layout;

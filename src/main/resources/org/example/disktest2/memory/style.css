@@ -1,0 +1,115 @@
+/* ---------- 全局白色背景 ---------- */
+.root {
+    -fx-background-color: white;
+    -fx-font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+/* ========== 新增：防止 Canvas 0×0 崩溃 ========== */
+#canvas {
+    -fx-min-width: 1;
+    -fx-min-height: 1;
+}
+
+/* ---------- 标题栏样式（可选） ---------- */
+.label-title {
+    -fx-text-fill: #333333;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+/* ---------- 输入框样式修改 ---------- */
+.text-field {
+    /*-fx-background-radius: 8;*/
+    /*-fx-border-radius: 8;*/
+    -fx-background-color: #f0f0f0;
+    -fx-border-color: #cccccc;
+    -fx-text-fill: black;
+    -fx-prompt-text-fill: #888;
+}
+
+/* ---------- 按钮样式修改 ---------- */
+.button {
+    -fx-padding: 8 20 8 20;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-background-color: #00c6ff;
+    -fx-cursor: hand;
+    -fx-effect: null;
+    -fx-transition: all 0.3s;
+}
+.button:hover {
+    -fx-background-color: #0090ff;
+}
+.button:pressed {
+    -fx-scale-x: 0.95;
+    -fx-scale-y: 0.95;
+}
+
+/* ---------- 日志区白色背景 ---------- */
+.text-area {
+    /*-fx-background-radius: 10;*/
+    /*-fx-border-radius: 10;*/
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-text-fill: black;
+    -fx-font-size: 13px;
+}
+.text-area .content {
+    -fx-background-color: white;
+}
+
+/* ---------- 内存条外框 ---------- */
+.memory-strip {
+    -fx-alignment: center;      /* 水平居中 */
+    -fx-padding: 10 40 10 40;   /* 上下 10px，左右 40px留白 */
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/* 新增：大小信息区域样式 */
+.size-info {
+    -fx-font-size: 14px;
+    -fx-text-fill: black;
+    -fx-padding: 5 0 10 0;
+}
+
+/* 新增：图例样式 */
+.legend-box {
+    -fx-spacing: 15;
+    -fx-padding: 10 0;
+    -fx-alignment: center;
+}
+
+.legend-item {
+    -fx-spacing: 5;
+    -fx-alignment: center;
+}
+
+.legend-color {
+    -fx-min-width: 15;
+    -fx-min-height: 15;
+    -fx-max-width: 15;
+    -fx-max-height: 15;
+    -fx-background-radius: 2;
+}
+
+/* ---------- 内存使用率条 ---------- */
+.usage-bar {
+    -fx-padding: 10 0 0 0;
+}
+.usage-label {
+    -fx-text-fill: black;
+    -fx-font-size: 14px;
+}
+.usage-percent {
+    -fx-text-fill: black;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+#usageBar {
+    -fx-accent: #00c6ff;   /* 进度条颜色 */
+}
+.root {                /* 最外层 VBox */
+    -fx-padding: 10 40 10 40;   /* 上下10 左右40 */
+    -fx-alignment: center;      /* 整体居中 */
+}
