@@ -13,9 +13,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import org.example.disktest2.pd.domain.model.PCB;
-import org.example.disktest2.Device.DeviceManager;
-import org.example.disktest2.Controller.OSManager;
 
 import java.util.List;
 import java.util.Map;
@@ -48,7 +45,7 @@ public class MemoryController {
 
         // 将信息标签和图例添加到容器（修正容器获取逻辑）
         VBox infoContainer = new VBox(10);
-        infoContainer.getChildren().addAll(sizeInfoLabel, legendBox);
+        infoContainer.getChildren().addAll(legendBox);
 
         canvas.setWidth(800);  // 设置固定宽度
         canvas.setHeight(100); // 设置固定高度
@@ -117,7 +114,11 @@ public class MemoryController {
         legendBox = new HBox();
         legendBox.getStyleClass().add("legend-box");
         HBox sysLegend = new HBox();
-        sysLegend.getStyleClass().add("legend-item");
+        sysLegend.getStyleClass().add("size-info");
+
+        sizeInfoLabel = new Label();
+        sizeInfoLabel.getStyleClass().add("size-info");//系统区大小
+        sysLegend.getChildren().addAll(sizeInfoLabel);
         sysLegend.getChildren().addAll(new Label("颜色说明：蓝色-系统区，浅绿色-空闲区，红色-进程区"));
 
         legendBox.getChildren().addAll(sysLegend);
