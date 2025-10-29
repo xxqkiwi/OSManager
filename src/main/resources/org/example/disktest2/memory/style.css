@@ -148,3 +148,27 @@
 .bar-chart:device .series0 .bar {
     -fx-bar-fill: #ffd166; /* 设备已占用 - 黄色系 */
 }
+/* 在现有样式基础上添加/修改 */
+.info-container {
+    -fx-padding: 5 0 0 0; /* 仅顶部留5px间距，贴近内存条 */
+}
+
+.usage-bar {
+    -fx-padding: 0; /* 移除默认上 padding */
+    -fx-pref-width: 600px; /* 调整进度条宽度 */
+}
+
+.size-info {
+    -fx-font-size: 14px;
+    -fx-text-fill: black;
+    -fx-padding: 5 0 5 0; /* 减小上下间距 */
+}
+
+.legend-box {
+    -fx-spacing: 15;
+    -fx-padding: 5 0 0 0; /* 减小顶部间距 */
+    -fx-alignment: center-left; /* 与进度条左对齐 */
+}
+#diskUsageBar {
+    -fx-accent: #ff6b6b; /* 磁盘进度条颜色使用红色系，与磁盘已使用块颜色呼应 */
+}

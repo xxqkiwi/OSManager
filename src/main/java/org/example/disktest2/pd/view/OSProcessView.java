@@ -231,7 +231,7 @@ public class OSProcessView extends Application {
     }
 
     private void createTestProcess() {
-        // 随机选择一个可执行文件
+        // 随机选择一个可执行文件.e
         ExeFile randomExe = EXE_FILES.get(new Random().nextInt(EXE_FILES.size()));
 
         // 直接使用该文件的指令集（保证指令兼容且不同文件指令有差异）

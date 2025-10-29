@@ -1,4 +1,4 @@
-package org.example.disktest2.entity;
+package org.example.disktest2.file.entity;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
