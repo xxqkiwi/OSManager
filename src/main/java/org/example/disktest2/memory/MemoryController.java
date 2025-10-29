@@ -279,6 +279,7 @@ public class MemoryController {
         int freeBlocks = fat[0];
         int usedBlocks = DISK_TOTAL_SIZE - freeBlocks;//计算已使用的磁盘块数（总块数 - 空闲块数）
         double usage = (double) usedBlocks / DISK_TOTAL_SIZE;//计算磁盘使用率（已使用块数 / 总块数
+        System.out.println("1已使用磁盘块:"+usedBlocks);
 
         // 更新原有控件的状态
         diskUsageBar.setProgress(usage);
@@ -328,6 +329,7 @@ public class MemoryController {
         // 计算磁盘使用率
         int freeBlocks = fat[0];  // FAT表第0项存储空闲块数
         int usedBlocks = DISK_TOTAL_SIZE - freeBlocks;
+        System.out.println("2已使用磁盘块:"+usedBlocks);
 
         // 计算缩放比例
         double scaleX = diskCanvas.getWidth() / DISK_TOTAL_SIZE;

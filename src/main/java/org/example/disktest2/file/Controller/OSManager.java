@@ -8,7 +8,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class OSManager {
     private List<FileModel> totalFiles = new ArrayList<FileModel>();
@@ -244,12 +246,12 @@ public class OSManager {
         }
 
         FileModel file = parentDir.subMap.get(fileName);
+        if(file.getAttr() == 3) return 2;//不是文件是目录
 
         if (file == null) {
             return 1; // 文件不存在
         }
 
-        if(file.getAttr() == 3) return 2;//不是文件是目录
 
         if (fat[0] >= 126) {
             return 3; // 磁盘为空
@@ -303,7 +305,7 @@ public class OSManager {
         totalFiles.remove(file);
         fat[0] += file.getSize();
         FileOutputStream fos = file.getFos();
-        File f = new File(path+"."+ fm.getType());
+        File f = new File(parentPath+"\\"+ fileName);
         f.delete();
 
         System.out.println("删除文件成功：" + path);
@@ -369,6 +371,7 @@ public class OSManager {
             name=name+"."+fm.getType();
             //newName=newName+"."+fm.getType();
         }
+
         FileModel value = nowCatalog.subMap.get(name);
         if(value == null) {
             System.out.println("当前文件不存在，请检查名字");

@@ -9,6 +9,9 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.geometry.Pos;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import org.example.disktest2.file.entity.FileModel;
 import org.example.disktest2.file.Controller.OSManager;
 
@@ -16,6 +19,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 public class TestFileSystem implements Initializable {
@@ -161,7 +165,7 @@ public class TestFileSystem implements Initializable {
         // 删除菜单项
         MenuItem deleteItem = new MenuItem("删除");
         deleteItem.setOnAction(event -> {
-            // 获取选中节点
+            // 1. 获取选中节点
             TreeItem<FileModel> selectedItem = dirTree.getSelectionModel().getSelectedItem();
             if (selectedItem == null) {
                 showAlert("提示", "请选择要删除的项目");
@@ -171,16 +175,16 @@ public class TestFileSystem implements Initializable {
             String targetName = target.getName();
             FileModel parent = target.getFather();
 
-            // 构建准确路径（
+            // 2. 构建准确路径（与OSManager解析逻辑一致）
             String fullPath = buildFullPath(target);
 
-            // 确认删除
+            // 3. 确认删除
             Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
             confirmAlert.setHeaderText("确定删除「" + targetName + "」吗？");
             confirmAlert.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.OK) {
                     try {
-                        //根据类型调用对应删除方法（避免调用错误的底层方法）
+                        // 5. 根据类型调用对应删除方法（避免调用错误的底层方法）
                         int res = (target.getAttr() == 3)
                                 ? osManager.removeDirectoryByPath(fullPath)
                                 : osManager.deleteFileByPathAndFile(target,fullPath);
@@ -213,6 +217,7 @@ public class TestFileSystem implements Initializable {
             }
 
             FileModel target = selectedItem.getValue();
+            String type=target.getType();
             FileModel parent = target.getFather();
             String fullPath = buildFullPath(target);
             osManager.nowCatalog = parent;
@@ -235,6 +240,10 @@ public class TestFileSystem implements Initializable {
                 if (parent.subMap.containsKey(newName)) {
                     showAlert("错误", "名称已存在");
                     return;
+                }
+
+                if(!newName.contains(".")){
+                    newName=newName+"."+type;
                 }
 
                 // 执行重命名操作
