@@ -29,6 +29,9 @@ public class OSManager {
         return root;
     }
 
+    // 1. 添加静态单例实例
+    private static OSManager instance;
+
     public OSManager(){
         for (int i = 3; i < 128; i++) {
             fat[i]=0;
@@ -38,6 +41,13 @@ public class OSManager {
         fat[2] = -1;
         //root.setFather(root);
         totalFiles.add(root);
+    }
+
+    public static synchronized OSManager getInstance() {
+        if (instance == null) {
+            instance = new OSManager(); // 首次调用时创建实例
+        }
+        return instance; // 返回唯一实例
     }
 
     public int[] getFat() {
@@ -869,4 +879,5 @@ public class OSManager {
         }
         return 3;
     }
+
 }

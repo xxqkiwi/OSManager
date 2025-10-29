@@ -10,11 +10,12 @@
     <!-- ① 内存条区域：用 VBox 做父节点，和你的 initialize() 强转对应 -->
     <VBox id="memoryPane" maxWidth="Infinity" VBox.vgrow="ALWAYS">
         <Canvas fx:id="canvas" width="640" height="60" />
+        <Canvas fx:id="diskCanvas" />
     </VBox>
 
     <!-- ④ 内存使用率条 -->
     <HBox alignment="CENTER_LEFT" spacing="10" styleClass="usage-bar">
-        <Label text="内存使用情况：" styleClass="usage-label"/>
+        <!--<Label text="内存使用情况：" styleClass="usage-label"/>-->
         <ProgressBar fx:id="usageBar" prefWidth="200"/>
         <Label fx:id="usageText" styleClass="usage-percent"/>
     </HBox>
