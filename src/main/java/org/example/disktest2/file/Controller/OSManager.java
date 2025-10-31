@@ -825,7 +825,7 @@ public class OSManager {
         directory.setFather(parentDir);
         parentDir.subMap.put(dirName, directory);
         totalFiles.add(directory);
-        fat[0]--;
+        fat[0]-=size;
         File dir = new File(parentPath,dirName);
         if(dir.mkdir()) {
             System.out.println("创建目录成功：" + path);
