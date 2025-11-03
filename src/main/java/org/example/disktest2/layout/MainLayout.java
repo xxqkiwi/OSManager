@@ -42,7 +42,6 @@ public class MainLayout {
         ImageView bgView = new ImageView(backgroundImage);
         bgView.fitWidthProperty().bind(stage.widthProperty());
         bgView.fitHeightProperty().bind(stage.heightProperty());
-
         // 文件管理图标
         Image appImage = new Image(getClass().getResourceAsStream("/org/example/disktest2/images/file.png"));
         ImageView appView = new ImageView(appImage);
@@ -128,7 +127,7 @@ public class MainLayout {
         baiduName.setOnMouseClicked(mouseEvent -> openBaiduInApp());
 
         //创建水平容器放置应用图标，间距设为10
-        HBox appContainer = new HBox(10);
+        HBox appContainer = new HBox(100);
         appContainer.getChildren().addAll(app, app_p, memoryApp, baiduApp);
         // 设置图标容器居中对齐
         appContainer.setAlignment(javafx.geometry.Pos.CENTER);
@@ -210,7 +209,7 @@ public class MainLayout {
             memoryStage.initOwner(primaryStage);
             memoryStage.setTitle("内存管理");
             FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("memory/memory-view.fxml"));
-            Scene scene = new Scene(fxmlLoader.load(), 1000, 600);
+            Scene scene = new Scene(fxmlLoader.load(), 910, 410);
             memoryStage.setScene(scene);
             memoryStage.show();
         } catch (Exception e) {

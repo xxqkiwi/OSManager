@@ -44,6 +44,9 @@ public class TestFileSystem implements Initializable {
     @FXML
     private TreeView<FileModel> dirTree;   // 挂实体，方便右键、重命名取数据
 
+    // 声明一个类级别的 OSManager 引用，通过单例方法初始化
+    private OSManager osManager;
+
     private String getPath(FileModel fm) {
         StringBuilder sb = new StringBuilder(fm.getName());
         FileModel p = fm.getFather();
@@ -300,11 +303,12 @@ public class TestFileSystem implements Initializable {
     }
 
     // 在TestFileSystem类中添加成员变量
-    private OSManager osManager;
+    //private OSManager osManager;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        this.osManager = new OSManager(); // 初始化并保存实例
+        //this.osManager = new OSManager(); // 初始化并保存实例
+        osManager = OSManager.getInstance();
         menu(osManager);
         initDisk();
         checkDisk(osManager);

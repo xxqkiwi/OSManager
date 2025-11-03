@@ -33,7 +33,6 @@ public class MemoryController {
     private Timeline refreshTimeline;
 
     private final int DISK_TOTAL_SIZE = 128;// 磁盘管理相关引用（假设磁盘总大小为128块，与OSManager中fat数组大小对应）
-    //private OSManager osManager = new OSManager();  // 引用磁盘管理类
     private OSManager osManager = OSManager.getInstance();
 
     @FXML
@@ -47,13 +46,11 @@ public class MemoryController {
 
         // 将信息标签和图例添加到容器（修正容器获取逻辑）
         VBox infoContainer = new VBox(5);
-        // 先添加进度条和使用率文本
+        // 添加进度条和使用率文本
         HBox usageBox = new HBox(10);
         usageBox.getChildren().addAll(usageBar, usageText);
-        infoContainer.getChildren().add(usageBox);
-        // 再添加大小信息和图例
-        infoContainer.getChildren().addAll(legendBox,sizeInfoLabel,new Label("内存使用情况："));
-
+        // 添加大小信息和图例
+        infoContainer.getChildren().addAll(legendBox,new Label("内存使用情况："),usageBox,sizeInfoLabel);
         canvas.setWidth(800);
         canvas.setHeight(100);
 
@@ -80,11 +77,16 @@ public class MemoryController {
         initializeDiskDisplay();
         // 初始化定时刷新任务
         refreshTimeline = new Timeline(new KeyFrame(Duration.millis(500), e -> {
-            if (mm.isMemoryChanged()) { // 现在可以正常调用了
+            if (mm.isMemoryChanged()) {
                 draw(); // 刷新界面
                 mm.resetMemoryChanged(); // 重置标识
             }
+            // 磁盘更新
             updateDiskUsage();
+            if (osManager.isDiskChanged()) {
+                drawDisk();
+                osManager.resetDiskChanged();
+            }
         }));
         refreshTimeline.setCycleCount(Timeline.INDEFINITE);
         refreshTimeline.play();
@@ -106,8 +108,6 @@ public class MemoryController {
             }
         });
 
-
-        //testDiskDisplayChanges();
     }
     // 添加停止刷新的方法，在界面关闭时调用
     public void stopRefresh() {
@@ -189,21 +189,21 @@ public class MemoryController {
         usageText.setText(String.format("内存使用率:%.1f %%", percent * 100));
     }
 
-/*
- 计算内存中空闲区域的总大小,该方法遍历内存快照中的所有段，累加标记为"空闲"的段的大小,@return 返回内存中所有空闲段的总大小（以字节为单位）
- */
+    /*
+     计算内存中空闲区域的总大小,该方法遍历内存快照中的所有段，累加标记为"空闲"的段的大小,@return 返回内存中所有空闲段的总大小（以字节为单位）
+     */
     // 计算空闲区总大小
     private int calculateFreeSize() {
         int freeSize = 0;  // 初始化空闲区总大小为0
-    // 遍历内存快照中的所有段
+        // 遍历内存快照中的所有段
         for (var seg : mm.snapshot()) {
-        // 检查当前段是否为空闲段
+            // 检查当前段是否为空闲段
             if (seg.label().equals("空闲")) {
-            // 如果是空闲段，则将其大小累加到总空闲大小中
+                // 如果是空闲段，则将其大小累加到总空闲大小中
                 freeSize += seg.size();
             }
         }
-    // 返回计算得到的空闲区总大小
+        // 返回计算得到的空闲区总大小
         return freeSize;
     }
 
@@ -242,7 +242,7 @@ public class MemoryController {
         diskCanvas.setHeight(100);
 
         // 获取磁盘画布的父容器并添加信息容器
-        Pane diskCanvasParent = (Pane) diskCanvas.getParent();
+        /*12:23 Pane diskCanvasParent = (Pane) diskCanvas.getParent();
         if (diskCanvasParent != null) {
             diskCanvasParent.getChildren().removeIf(
                     node -> node instanceof VBox && ((VBox) node).getStyleClass().contains("disk-info-container")
@@ -250,41 +250,53 @@ public class MemoryController {
             diskInfoContainer.getStyleClass().add("disk-info-container");
             int diskCanvasIndex = diskCanvasParent.getChildren().indexOf(diskCanvas);
             diskCanvasParent.getChildren().add(diskCanvasIndex + 1, diskInfoContainer);
+        }*/
+        Pane diskCanvasParent = (Pane) diskCanvas.getParent();
+        if (diskCanvasParent != null) {
+            diskCanvasParent.getChildren().removeIf(node -> node instanceof VBox && ((VBox) node).getId() != null && ((VBox) node).getId().equals("diskInfoContainer"));
+            diskInfoContainer.setId("diskInfoContainer");
+            int diskCanvasIndex = diskCanvasParent.getChildren().indexOf(diskCanvas);
+            diskCanvasParent.getChildren().add(diskCanvasIndex + 1, diskInfoContainer);
         }
+
+        // 初始化时手动调用一次磁盘使用情况
+        updateDiskUsage();
 
         // 磁盘画布尺寸变化监听
         diskCanvas.widthProperty().addListener((obs, old, neo) -> drawDisk());
         diskCanvas.heightProperty().addListener((obs, old, neo) -> drawDisk());
-
-        // 在内存刷新定时器中添加磁盘刷新逻辑
+        drawDisk();
+        //System.out.println("diskdraw");
+        /*// 在内存刷新定时器中添加磁盘刷新逻辑
         refreshTimeline = new Timeline(new KeyFrame(Duration.millis(500), e -> {
             if (mm.isMemoryChanged()) {
                 draw();
                 mm.resetMemoryChanged();
             }
             // 每次刷新都更新磁盘显示（可根据实际情况优化）
-            drawDisk();
+
         }));
         refreshTimeline.setCycleCount(Timeline.INDEFINITE);
-        refreshTimeline.play();
+        refreshTimeline.play();*/
     }
 
     // 更新磁盘显示的方法
     private void updateDiskUsage() {
-        // 从原有OSManager中获取fat表
-        int[] fat = osManager.getFat();
-        if (fat == null) return;
-
-        // 原有逻辑中fat[0]存储空闲块数，直接复用
-        int freeBlocks = fat[0];
-        int usedBlocks = DISK_TOTAL_SIZE - freeBlocks;//计算已使用的磁盘块数（总块数 - 空闲块数）
-        double usage = (double) usedBlocks / DISK_TOTAL_SIZE;//计算磁盘使用率（已使用块数 / 总块数
-
-        // 更新原有控件的状态
-        diskUsageBar.setProgress(usage);
-        diskUsageText.setText(String.format("磁盘使用率: %.1f%%", usage * 100));
+        if (osManager == null) return;
+        System.out.println("1 updateDisk");
+        // 计算磁盘使用情况（FAT表中0表示空闲块，-1表示已使用）
+        int usedBlocks = DISK_TOTAL_SIZE - osManager.getFat()[0]; // 总块数 - 空闲块数
+        System.out.println("2 updateDisk "+usedBlocks);
+        double usagePercent = (double) usedBlocks / DISK_TOTAL_SIZE;// 计算使用率（总块数128）
+        // 更新进度条和文本（需确保UI操作在JavaFX线程）
+        Platform.runLater(() -> {
+            diskUsageBar.setProgress(usagePercent);
+            diskUsageText.setText(String.format("磁盘使用率:%.1f %%", usagePercent * 100));
+            diskSizeInfoLabel.setText(String.format("总大小: %d 块 | 已使用: %d 块 | 空闲: %d 块",
+                    DISK_TOTAL_SIZE, usedBlocks, osManager.getFat()[0]));
+        });
     }
-    // 新增磁盘图例创建方法
+    // 磁盘图例创建方法
     private void createDiskLegend() {
         diskLegendBox = new HBox();
         diskLegendBox.getStyleClass().add("legend-box");
@@ -316,18 +328,17 @@ public class MemoryController {
         diskLegendBox.getChildren().addAll(usedLegend, freeLegend, sysLegend);
     }
 
-    // 新增磁盘绘制方法
+    // 磁盘绘制方法
     private void drawDisk() {
         GraphicsContext g = diskCanvas.getGraphicsContext2D();
         g.clearRect(0, 0, diskCanvas.getWidth(), diskCanvas.getHeight());
 
-        //OSManager osManager = new OSManager();  // 获取磁盘管理实例
         int[] fat = osManager.getFat();
-        //int DISK_TOTAL_SIZE = 128;
 
         // 计算磁盘使用率
         int freeBlocks = fat[0];  // FAT表第0项存储空闲块数
         int usedBlocks = DISK_TOTAL_SIZE - freeBlocks;
+        System.out.println("draw freeBlocks "+freeBlocks);
 
         // 计算缩放比例
         double scaleX = diskCanvas.getWidth() / DISK_TOTAL_SIZE;
@@ -354,12 +365,12 @@ public class MemoryController {
         // 更新磁盘信息
         diskSizeInfoLabel.setText(String.format("磁盘总块数: %d 块  |  空闲块数: %d 块  |  已使用块数: %d 块",
                 DISK_TOTAL_SIZE, freeBlocks, usedBlocks));
-
         // 更新磁盘进度条
         double usagePercent = (double) usedBlocks / DISK_TOTAL_SIZE;//计算磁盘使用率（已使用块数 / 总块数）
         diskUsageBar.setProgress(usagePercent);//更新磁盘进度条的进度值
         diskUsageText.setText(String.format("磁盘使用率: %.1f %%", usagePercent * 100));
     }
+
 
 /*
 @FXML

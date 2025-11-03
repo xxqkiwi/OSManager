@@ -29,8 +29,9 @@ public class OSManager {
         return root;
     }
 
-    // 1. 添加静态单例实例
+    // 添加静态单例实例
     private static OSManager instance;
+    private boolean diskChanged = false; //磁盘变化标识
 
     public OSManager(){
         for (int i = 3; i < 128; i++) {
@@ -48,6 +49,16 @@ public class OSManager {
             instance = new OSManager(); // 首次调用时创建实例
         }
         return instance; // 返回唯一实例
+    }
+    // 获取和重置方法
+    public boolean isDiskChanged() {
+        //System.out.println(diskChanged+" "+ fat[0]);
+        return diskChanged;
+    }
+
+    public void resetDiskChanged() {
+        System.out.println("OS DiskReset "+ fat[0]);
+        diskChanged = false;
     }
 
     public int[] getFat() {
@@ -71,6 +82,7 @@ public class OSManager {
             }
         }
         fat[i-1] = -1;
+        diskChanged = true;
         return startNum[0]; //返回第一块
     }
 
@@ -82,6 +94,7 @@ public class OSManager {
             i = j;
         }
         fat[i] = 0;
+        diskChanged = true;
     }
 
     public void addFat(int startNum, int addSize) {
@@ -90,6 +103,7 @@ public class OSManager {
         while(next != -1) {
             now = next;
             next = fat[now];
+            diskChanged = true;
         }
 
         for(int j=0, i=2 ; j<addSize ; i++) {
@@ -100,6 +114,7 @@ public class OSManager {
             }
         }
         fat[now] = -1;
+        diskChanged = true;
     }
 
     //创建文件
@@ -225,10 +240,12 @@ public class OSManager {
         parentDir.subMap.put(fileName, file);
         totalFiles.add(file);
         fat[0] -= size;
+        diskChanged = true;
         file.setFos(path);
 
         System.out.println("创建文件成功：" + path);
         showFile();
+        System.out.println(diskChanged+" "+ fat[0]);
         return 0;
     }
 
@@ -262,12 +279,15 @@ public class OSManager {
         parentDir.subMap.remove(fileName);
         totalFiles.remove(file);
         fat[0] += file.getSize();
+        diskChanged = true;
         FileOutputStream fos = file.getFos();
         File f = new File(path);
         f.delete();
 
         System.out.println("删除文件成功：" + path);
         showFile();
+        System.out.println(diskChanged+" "+ fat[0]);
+
         return 0;
     }
 
@@ -304,12 +324,15 @@ public class OSManager {
         parentDir.subMap.remove(fileName);
         totalFiles.remove(file);
         fat[0] += file.getSize();
+        diskChanged = true;
         FileOutputStream fos = file.getFos();
         File f = new File(parentPath+"\\"+ fileName);
         f.delete();
 
         System.out.println("删除文件成功：" + path);
         showFile();
+        System.out.println(diskChanged+" "+ fat[0]);
+
         return 0;
     }
 
@@ -357,6 +380,7 @@ public class OSManager {
                 fat[0] += value.getSize();
                 System.out.println("删除成功");
                 showFile();
+                diskChanged = true;
                 return 0;
             }
         } else {
@@ -836,6 +860,7 @@ public class OSManager {
         }
 
         showFile();
+        diskChanged = true;
         return 0;
     }
 
